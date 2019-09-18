@@ -1,14 +1,14 @@
 resource "vsphere_virtual_machine" "vm" {
-  count = "${var.vm_disk2_enable == "false" && var.enable_vm == "true" ? length(var.vm_ipv4_address) : 0}"
+  count = var.vm_disk2_enable == "false" && var.enable_vm == "true" ? length(var.vm_ipv4_address) : 0
 
-  name             = "${var.vm_name[count.index]}"
-  folder           = "${var.vm_folder}"
-  num_cpus         = "${var.vm_vcpu}"
-  memory           = "${var.vm_memory}"
-  resource_pool_id = "${data.vsphere_resource_pool.resource_pool.id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
-  guest_id         = "${data.vsphere_virtual_machine.vm_image_template.guest_id}"
-  scsi_type        = "${data.vsphere_virtual_machine.vm_image_template.scsi_type}"
+  name             = var.vm_name[count.index]
+  folder           = var.vm_folder
+  num_cpus         = var.vm_vcpu
+  memory           = var.vm_memory
+  resource_pool_id = data.vsphere_resource_pool.resource_pool.id
+  datastore_id     = data.vsphere_datastore.datastore.id
+  guest_id         = data.vsphere_virtual_machine.vm_image_template.guest_id
+  scsi_type        = data.vsphere_virtual_machine.vm_image_template.scsi_type
 
   # tags = {
   #   # Initial value for Name is overridden by our automatic scheduled
@@ -18,56 +18,58 @@ resource "vsphere_virtual_machine" "vm" {
   # }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.vm_image_template.id}"
-    timeout = "${var.vm_clone_timeout}"
+    template_uuid = data.vsphere_virtual_machine.vm_image_template.id
+    timeout       = var.vm_clone_timeout
     customize {
       linux_options {
-        domain    = "${var.vm_domain_name}"
-        host_name = "${var.vm_name[count.index]}"
+        domain    = var.vm_domain_name
+        host_name = var.vm_name[count.index]
       }
 
       network_interface {
-        ipv4_address = "${var.vm_ipv4_address[count.index]}"
-        ipv4_netmask = "${var.vm_ipv4_netmask}"
+        ipv4_address = var.vm_ipv4_address[count.index]
+        ipv4_netmask = var.vm_ipv4_netmask
       }
 
-      ipv4_gateway    = "${var.vm_ipv4_gateway}"
-      dns_suffix_list = "${var.dns_suffixes}"
-      dns_server_list = "${var.dns_servers}"
+      ipv4_gateway    = var.vm_ipv4_gateway
+      dns_suffix_list = var.dns_suffixes
+      dns_server_list = var.dns_servers
     }
   }
 
   network_interface {
-    network_id   = "${data.vsphere_network.vm_network.id}"
-    adapter_type = "${var.adapter_type}"
+    network_id   = data.vsphere_network.vm_network.id
+    adapter_type = var.adapter_type
   }
 
   disk {
     label          = "${var.vm_name[count.index]}.vmdk"
-    size           = "${var.vm_disk1_size}"
-    keep_on_remove = "${var.vm_disk1_keep_on_remove}"
-    datastore_id   = "${data.vsphere_datastore.datastore.id}"
+    size           = var.vm_disk1_size
+    keep_on_remove = var.vm_disk1_keep_on_remove
+    datastore_id   = data.vsphere_datastore.datastore.id
   }
 
   lifecycle {
     ignore_changes = [
-      "datastore_id",
-      "disk[0].datastore_id"
+      datastore_id,
+      disk[0].datastore_id,
     ]
     create_before_destroy = true
   }
 
   # Specify the connection
+  # Specify the connection
   connection {
-    type     = "ssh"
-    user     = "${var.vm_os_user}"
-    password = "${var.vm_os_password}"
-    bastion_host        = "${var.bastion_host}"
-    bastion_user        = "${var.bastion_user}"
-    bastion_private_key = "${ length(var.bastion_private_key) > 0 ? base64decode(var.bastion_private_key) : var.bastion_private_key}"
-    bastion_port        = "${var.bastion_port}"
-    bastion_host_key    = "${var.bastion_host_key}"
-    bastion_password    = "${var.bastion_password}"        
+    host                = self.default_ip_address
+    type                = "ssh"
+    user                = var.vm_os_user
+    password            = var.vm_os_password
+    bastion_host        = var.bastion_host
+    bastion_user        = var.bastion_user
+    bastion_private_key = length(var.bastion_private_key) > 0 ? base64decode(var.bastion_private_key) : var.bastion_private_key
+    bastion_port        = var.bastion_port
+    bastion_host_key    = var.bastion_host_key
+    bastion_password    = var.bastion_password
   }
 
   provisioner "file" {
@@ -138,30 +140,34 @@ fi
 rm -rf $user_auth_key_file_private_temp
 
 EOF
+
   }
-  
+
   provisioner "local-exec" {
-    command = "echo \"${self.clone.0.customize.0.network_interface.0.ipv4_address}       ${self.name}.${var.vm_domain_name} ${self.name}\" >> /tmp/${var.random}/hosts"
+    command = "echo \"${self.clone[0].customize[0].network_interface[0].ipv4_address}       ${self.name}.${var.vm_domain_name} ${self.name}\" >> /tmp/${var.random}/hosts"
   }
 }
 
 resource "null_resource" "add_ssh_key" {
-  depends_on = ["vsphere_virtual_machine.vm"]
-  count = "${var.vm_disk2_enable == "false" && var.enable_vm == "true" ? length(var.vm_ipv4_address) : 0}"
+  depends_on = [vsphere_virtual_machine.vm]
+  count      = var.vm_disk2_enable == "false" && var.enable_vm == "true" ? length(var.vm_ipv4_address) : 0
+
+  # Specify the connection
   # Specify the connection
   connection {
-    type     = "ssh"
-    user     = "${var.vm_os_user}"
-    password = "${var.vm_os_password}"
-    host     = "${var.vm_ipv4_address[count.index]}"
-    bastion_host        = "${var.bastion_host}"
-    bastion_user        = "${var.bastion_user}"
-    bastion_private_key = "${ length(var.bastion_private_key) > 0 ? base64decode(var.bastion_private_key) : var.bastion_private_key}"
-    bastion_port        = "${var.bastion_port}"
-    bastion_host_key    = "${var.bastion_host_key}"
-    bastion_password    = "${var.bastion_password}"        
+    type                = "ssh"
+    user                = var.vm_os_user
+    password            = var.vm_os_password
+    host                = var.vm_ipv4_address[count.index]
+    bastion_host        = var.bastion_host
+    bastion_user        = var.bastion_user
+    bastion_private_key = length(var.bastion_private_key) > 0 ? base64decode(var.bastion_private_key) : var.bastion_private_key
+    bastion_port        = var.bastion_port
+    bastion_host_key    = var.bastion_host_key
+    bastion_password    = var.bastion_password
   }
-  
+
+  # Execute the script remotely
   # Execute the script remotely
   provisioner "remote-exec" {
     inline = [
@@ -173,78 +179,80 @@ resource "null_resource" "add_ssh_key" {
 }
 
 resource "vsphere_virtual_machine" "vm2disk" {
-  count = "${var.vm_disk2_enable == "true" && var.enable_vm == "true" ? length(var.vm_ipv4_address) : 0}"
+  count = var.vm_disk2_enable == "true" && var.enable_vm == "true" ? length(var.vm_ipv4_address) : 0
 
-  name             = "${var.vm_name[count.index]}"
-  folder           = "${var.vm_folder}"
-  num_cpus         = "${var.vm_vcpu}"
-  memory           = "${var.vm_memory}"
-  resource_pool_id = "${data.vsphere_resource_pool.resource_pool.id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
-  guest_id         = "${data.vsphere_virtual_machine.vm_image_template.guest_id}"
-  scsi_type        = "${data.vsphere_virtual_machine.vm_image_template.scsi_type}"
+  name             = var.vm_name[count.index]
+  folder           = var.vm_folder
+  num_cpus         = var.vm_vcpu
+  memory           = var.vm_memory
+  resource_pool_id = data.vsphere_resource_pool.resource_pool.id
+  datastore_id     = data.vsphere_datastore.datastore.id
+  guest_id         = data.vsphere_virtual_machine.vm_image_template.guest_id
+  scsi_type        = data.vsphere_virtual_machine.vm_image_template.scsi_type
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.vm_image_template.id}"
-    timeout = "${var.vm_clone_timeout}"
-    
+    template_uuid = data.vsphere_virtual_machine.vm_image_template.id
+    timeout       = var.vm_clone_timeout
+
     customize {
       linux_options {
-        domain    = "${var.vm_domain_name}"
-        host_name = "${var.vm_name[count.index]}"
+        domain    = var.vm_domain_name
+        host_name = var.vm_name[count.index]
       }
 
       network_interface {
-        ipv4_address = "${var.vm_ipv4_address[count.index]}"
-        ipv4_netmask = "${var.vm_ipv4_netmask}"
+        ipv4_address = var.vm_ipv4_address[count.index]
+        ipv4_netmask = var.vm_ipv4_netmask
       }
 
-      ipv4_gateway    = "${var.vm_ipv4_gateway}"
-      dns_suffix_list = "${var.dns_suffixes}"
-      dns_server_list = "${var.dns_servers}"
+      ipv4_gateway    = var.vm_ipv4_gateway
+      dns_suffix_list = var.dns_suffixes
+      dns_server_list = var.dns_servers
     }
   }
 
   network_interface {
-    network_id   = "${data.vsphere_network.vm_network.id}"
-    adapter_type = "${var.adapter_type}"
+    network_id   = data.vsphere_network.vm_network.id
+    adapter_type = var.adapter_type
   }
 
   disk {
     label          = "${var.vm_name[count.index]}.vmdk"
-    size           = "${var.vm_disk1_size}"
-    keep_on_remove = "${var.vm_disk1_keep_on_remove}"
+    size           = var.vm_disk1_size
+    keep_on_remove = var.vm_disk1_keep_on_remove
 
     // controller_type = "${var.vm_disk1_controller_type}"
-    datastore_id = "${data.vsphere_datastore.datastore.id}"
+    datastore_id = data.vsphere_datastore.datastore.id
   }
 
   disk {
     label          = "${var.vm_name[count.index]}Disk2.vmdk"
-    size           = "${var.vm_disk2_size}"
-    keep_on_remove = "${var.vm_disk2_keep_on_remove}"
-    datastore_id   = "${data.vsphere_datastore.datastore.id}"
+    size           = var.vm_disk2_size
+    keep_on_remove = var.vm_disk2_keep_on_remove
+    datastore_id   = data.vsphere_datastore.datastore.id
     unit_number    = 1
   }
 
   lifecycle {
     ignore_changes = [
-      "datastore_id",
-      "disk[0].datastore_id"
+      datastore_id,
+      disk[0].datastore_id,
     ]
   }
 
   # Specify the connection
+  # Specify the connection
   connection {
-    type     = "ssh"
-    user     = "${var.vm_os_user}"
-    password = "${var.vm_os_password}"
-    bastion_host        = "${var.bastion_host}"
-    bastion_user        = "${var.bastion_user}"
-    bastion_private_key = "${ length(var.bastion_private_key) > 0 ? base64decode(var.bastion_private_key) : var.bastion_private_key}"
-    bastion_port        = "${var.bastion_port}"
-    bastion_host_key    = "${var.bastion_host_key}"
-    bastion_password    = "${var.bastion_password}"        
+    host                = self.default_ip_address
+    type                = "ssh"
+    user                = var.vm_os_user
+    password            = var.vm_os_password
+    bastion_host        = var.bastion_host
+    bastion_user        = var.bastion_user
+    bastion_private_key = length(var.bastion_private_key) > 0 ? base64decode(var.bastion_private_key) : var.bastion_private_key
+    bastion_port        = var.bastion_port
+    bastion_host_key    = var.bastion_host_key
+    bastion_password    = var.bastion_password
   }
 
   provisioner "file" {
@@ -312,32 +320,36 @@ fi
 rm -rf $user_auth_key_file_private_temp
 
 EOF
+
   }
-  
+
   provisioner "local-exec" {
-    command = "echo \"${self.clone.0.customize.0.network_interface.0.ipv4_address}       ${self.name}.${var.vm_domain_name} ${self.name}\" >> /tmp/${var.random}/hosts"
+    command = "echo \"${self.clone[0].customize[0].network_interface[0].ipv4_address}       ${self.name}.${var.vm_domain_name} ${self.name}\" >> /tmp/${var.random}/hosts"
   }
 }
 
 resource "null_resource" "add_ssh_key_2disk" {
-  count = "${var.vm_disk2_enable == "true" && var.enable_vm == "true" ? length(var.vm_ipv4_address) : 0}"
-  depends_on = ["vsphere_virtual_machine.vm2disk"]
-  
+  count      = var.vm_disk2_enable == "true" && var.enable_vm == "true" ? length(var.vm_ipv4_address) : 0
+  depends_on = [vsphere_virtual_machine.vm2disk]
+
+  # Specify the connection
+  # Specify the connection
   # Specify the connection
   # Specify the connection
   connection {
-    type     = "ssh"
-    user     = "${var.vm_os_user}"
-    password = "${var.vm_os_password}"
-    host     = "${var.vm_ipv4_address[count.index]}"
-    bastion_host        = "${var.bastion_host}"
-    bastion_user        = "${var.bastion_user}"
-    bastion_private_key = "${ length(var.bastion_private_key) > 0 ? base64decode(var.bastion_private_key) : var.bastion_private_key}"
-    bastion_port        = "${var.bastion_port}"
-    bastion_host_key    = "${var.bastion_host_key}"
-    bastion_password    = "${var.bastion_password}"        
+    type                = "ssh"
+    user                = var.vm_os_user
+    password            = var.vm_os_password
+    host                = var.vm_ipv4_address[count.index]
+    bastion_host        = var.bastion_host
+    bastion_user        = var.bastion_user
+    bastion_private_key = length(var.bastion_private_key) > 0 ? base64decode(var.bastion_private_key) : var.bastion_private_key
+    bastion_port        = var.bastion_port
+    bastion_host_key    = var.bastion_host_key
+    bastion_password    = var.bastion_password
   }
-  
+
+  # Execute the script remotely
   # Execute the script remotely
   provisioner "remote-exec" {
     inline = [
@@ -350,9 +362,15 @@ resource "null_resource" "add_ssh_key_2disk" {
 }
 
 resource "null_resource" "vm-create_done" {
-  depends_on = ["vsphere_virtual_machine.vm", "vsphere_virtual_machine.vm2disk", "null_resource.add_ssh_key", "null_resource.add_ssh_key_2disk"]
+  depends_on = [
+    vsphere_virtual_machine.vm,
+    vsphere_virtual_machine.vm2disk,
+    null_resource.add_ssh_key,
+    null_resource.add_ssh_key_2disk,
+  ]
 
   provisioner "local-exec" {
     command = "echo 'VM creates done for ${var.vm_name[count.index]}X.'"
   }
 }
+

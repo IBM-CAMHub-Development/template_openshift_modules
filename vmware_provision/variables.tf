@@ -1,34 +1,37 @@
-
 ##############################################################
 # Vsphere data for provider
 ##############################################################
 data "vsphere_datacenter" "datacenter" {
-  name = "${var.datacenter}"
+  name = var.datacenter
 }
+
 data "vsphere_datastore" "datastore" {
-  name = "${var.vm_disk1_datastore}" 
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+  name          = var.vm_disk1_datastore
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
+
 data "vsphere_resource_pool" "resource_pool" {
-  name = "${var.resource_pool}"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+  name          = var.resource_pool
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
+
 data "vsphere_network" "vm_network" {
-  name = "${var.network}"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+  name          = var.network
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_virtual_machine" "vm_image_template" {
-  name = "${var.vm_image_template}"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+  name          = var.vm_image_template
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
+
 variable "enable_vm" {
-  type = "string"
+  type = string
 }
 
 #Variable : vm_-name
 variable "vm_name" {
-  type = "list"
+  type = list(string)
 }
 
 #########################################################
@@ -36,16 +39,20 @@ variable "vm_name" {
 #########################################################
 
 variable "vm_os_password" {
-  type = "string"
+  type        = string
   description = "Operating System Password for the Operating System User to access virtual machine"
 }
-variable "vm_os_user" {
-  type = "string"
-  description = "Operating System user for the Operating System User to access virtual machine"
-  }
 
-variable "vm_private_ssh_key" { }
-variable "vm_public_ssh_key" { }
+variable "vm_os_user" {
+  type        = string
+  description = "Operating System user for the Operating System User to access virtual machine"
+}
+
+variable "vm_private_ssh_key" {
+}
+
+variable "vm_public_ssh_key" {
+}
 
 variable "vm_folder" {
   description = "Target vSphere folder for virtual machine"
@@ -65,12 +72,12 @@ variable "vm_domain_name" {
 
 variable "vm_vcpu" {
   description = "Number of virtual CPU for the virtual machine, which is required to be a positive Integer"
-  default = "1"
+  default     = "1"
 }
 
 variable "vm_memory" {
   description = "Memory assigned to the virtual machine in megabytes. This value is required to be an increment of 1024"
-  default = "1024"
+  default     = "1024"
 }
 
 variable "resource_pool" {
@@ -78,12 +85,12 @@ variable "resource_pool" {
 }
 
 variable "dns_suffixes" {
-  type = "list"
+  type        = list(string)
   description = "Name resolution suffixes for the virtual network adapter"
 }
 
 variable "dns_servers" {
-  type = "list"
+  type        = list(string)
   description = "DNS servers for the virtual network adapter"
 }
 
@@ -96,9 +103,9 @@ variable "vm_ipv4_gateway" {
 }
 
 variable "vm_ipv4_address" {
-  default = []
+  default     = []
   description = "IPv4 address for vNIC configuration"
-  type = "list"
+  type        = list(string)
 }
 
 variable "vm_ipv4_netmask" {
@@ -107,7 +114,7 @@ variable "vm_ipv4_netmask" {
 
 variable "adapter_type" {
   description = "Network adapter type for vNIC Configuration"
-  default = "vmxnet3"
+  default     = "vmxnet3"
 }
 
 variable "vm_disk1_size" {
@@ -115,9 +122,9 @@ variable "vm_disk1_size" {
 }
 
 variable "vm_disk1_keep_on_remove" {
-  type = "string"
+  type        = string
   description = "Delete template disk volume when the virtual machine is deleted"
-  default = "false"
+  default     = "false"
 }
 
 variable "vm_disk1_datastore" {
@@ -125,19 +132,19 @@ variable "vm_disk1_datastore" {
 }
 
 variable "vm_disk2_enable" {
-  type = "string"
+  type        = string
   description = "Enable a Second disk on VM"
-  default = "false"
-} 
+  default     = "false"
+}
 
 variable "vm_disk2_size" {
   description = "Size of template disk volume"
 }
 
 variable "vm_disk2_keep_on_remove" {
-  type = "string"
+  type        = string
   description = "Delete template disk volume when the virtual machine is deleted"
-  default = "false"
+  default     = "false"
 }
 
 variable "vm_disk2_datastore" {
@@ -146,15 +153,16 @@ variable "vm_disk2_datastore" {
 
 variable "vm_clone_timeout" {
   description = "The timeout, in minutes, to wait for the virtual machine clone to complete."
-  default = "30"
+  default     = "30"
 }
 
 variable "random" {
-  type = "string"
+  type        = string
   description = "Random String Generated"
 }
 
 variable "dependsOn" {
-  default = "true"
+  default     = "true"
   description = "Boolean for dependency"
 }
+
