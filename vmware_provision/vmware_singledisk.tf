@@ -1,5 +1,4 @@
 resource "vsphere_virtual_machine" "vm" {
-  // count = "${var.count}"
   count = "${var.vm_disk2_enable == "false" && var.enable_vm == "true" ? length(var.vm_ipv4_address) : 0}"
 
   name             = "${var.vm_name[count.index]}"
@@ -181,7 +180,6 @@ resource "null_resource" "add_ssh_key" {
 }
 
 resource "vsphere_virtual_machine" "vm2disk" {
-  // count = "${var.count}"
   count = "${var.vm_disk2_enable == "true" && var.enable_vm == "true" ? length(var.vm_ipv4_address) : 0}"
 
   name             = "${var.vm_name[count.index]}"
