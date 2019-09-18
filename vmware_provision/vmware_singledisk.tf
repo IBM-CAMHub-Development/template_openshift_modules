@@ -57,13 +57,6 @@ resource "vsphere_virtual_machine" "vm" {
     create_before_destroy = true
   }
 
-  // module "Setup_ssh_master" {
-  //   source = "../../modules/ssh_keygen"
-  //     os_admin_user = "${var.vm_os_user}"
-  //     os_password = "${var.vm_os_password}"
-  //     vm_private_ssh_key = "${var.vm_private_ssh_key}"
-  //     vm_public_ssh_key = "${var.vm_public_ssh_key}"
-  // }
   # Specify the connection
   connection {
     type     = "ssh"
@@ -237,7 +230,7 @@ resource "vsphere_virtual_machine" "vm2disk" {
   lifecycle {
     ignore_changes = [
       "datastore_id",
-      "disk.0.datastore_id"
+      "disk[0].datastore_id"
     ]
   }
 
