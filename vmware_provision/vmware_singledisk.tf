@@ -52,7 +52,7 @@ resource "vsphere_virtual_machine" "vm" {
   lifecycle {
     ignore_changes = [
       "datastore_id",
-      "disk.0.datastore_id"
+      "disk[0].datastore_id"
     ]
     create_before_destroy = true
   }
