@@ -370,7 +370,7 @@ resource "null_resource" "vm-create_done" {
   ]
 
   provisioner "local-exec" {
-    command = "echo 'VM creates done for ${var.vm_name[count.index]}X.'"
+    command = "echo 'VM has been successfully deployed.'"
   }
 }
 
