@@ -20,7 +20,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   clone {
     template_uuid = "${data.vsphere_virtual_machine.vm_image_template.id}"
-    timeout = "${var.vm_clone_timeout}"
+    timeout = "30m"
     customize {
       linux_options {
         domain    = "${var.vm_domain_name}"
@@ -70,7 +70,7 @@ resource "vsphere_virtual_machine" "vm" {
     type     = "ssh"
     user     = "${var.vm_os_user}"
     password = "${var.vm_os_password}"
-    timeout = "${var.vm_clone_timeout}"
+    timeout = "30m"
     bastion_host        = "${var.bastion_host}"
     bastion_user        = "${var.bastion_user}"
     bastion_private_key = "${ length(var.bastion_private_key) > 0 ? base64decode(var.bastion_private_key) : var.bastion_private_key}"
@@ -162,7 +162,7 @@ resource "null_resource" "add_ssh_key" {
     type     = "ssh"
     user     = "${var.vm_os_user}"
     password = "${var.vm_os_password}"
-    timeout = "${var.vm_clone_timeout}"
+    timeout = "30m"
     host     = "${var.vm_ipv4_address[count.index]}"
     bastion_host        = "${var.bastion_host}"
     bastion_user        = "${var.bastion_user}"
@@ -197,7 +197,7 @@ resource "vsphere_virtual_machine" "vm2disk" {
 
   clone {
     template_uuid = "${data.vsphere_virtual_machine.vm_image_template.id}"
-    timeout = "${var.vm_clone_timeout}"
+    timeout = "30m"
     
     customize {
       linux_options {
@@ -250,7 +250,7 @@ resource "vsphere_virtual_machine" "vm2disk" {
     type     = "ssh"
     user     = "${var.vm_os_user}"
     password = "${var.vm_os_password}"
-    timeout = "${var.vm_clone_timeout}"
+    timeout = "30m"
     bastion_host        = "${var.bastion_host}"
     bastion_user        = "${var.bastion_user}"
     bastion_private_key = "${ length(var.bastion_private_key) > 0 ? base64decode(var.bastion_private_key) : var.bastion_private_key}"
@@ -341,7 +341,7 @@ resource "null_resource" "add_ssh_key_2disk" {
     type     = "ssh"
     user     = "${var.vm_os_user}"
     password = "${var.vm_os_password}"
-    timeout = "${var.vm_clone_timeout}"
+    timeout = "30m"
     host     = "${var.vm_ipv4_address[count.index]}"
     bastion_host        = "${var.bastion_host}"
     bastion_user        = "${var.bastion_user}"
