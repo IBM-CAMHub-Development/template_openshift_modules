@@ -32,10 +32,6 @@ variable "network" {
   type = "string"
 }
 
-variable "cluster_domain" {
-  type = "string"
-}
-
 variable "datacenter_id" {
   type = "string"
 }
@@ -44,23 +40,18 @@ variable "template" {
   type = "string"
 }
 
-variable "machine_cidr" {
-  type = "string"
-}
-
-variable "ipam" {
-  type = "string"
-}
-
-variable "ipam_token" {
-  type = "string"
-}
-
-variable "ip_addresses" {
-  type = "list"
-}
 variable "memory" {
   type = "string"
+}
+
+variable "cpu" {
+  type = "string"
+  default = "4"
+}
+
+variable "disk_size" {
+  type = "string"
+  default = "120"
 }
 
 variable "use_static_mac" {
@@ -69,4 +60,9 @@ variable "use_static_mac" {
 
 variable "mac_address" {
   type = "list"
+}
+
+variable "dependsOn" {
+  default = "true"
+  description = "Boolean for dependency"
 }

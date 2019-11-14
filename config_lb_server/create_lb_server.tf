@@ -1,4 +1,7 @@
 resource "null_resource" "create_lb_server_dependsOn" {
+  triggers {
+    trigger_time = "${timestamp()}"
+  }
   provisioner "local-exec" {
     # Hack to force dependencies to work correctly. Must use the dependsOn var somewhere in the code for dependencies to work. Contain value which comes from previous module.
 	  command = "echo The dependsOn output for lb server module is ${var.dependsOn}"
@@ -171,6 +174,9 @@ resource "null_resource" "removeapp" {
 }
 
 resource "null_resource" "lb_server_create" {
+  triggers {
+    trigger_time = "${timestamp()}"
+  }
   depends_on = ["null_resource.create_lb_server","null_resource.create_lb_server_dependsOn", "null_resource.configapi", "null_resource.configapp", "null_resource.removeapi", "null_resource.removeapp"]
   provisioner "local-exec" {
     command = "echo 'HAPRoxy LB server created'" 
