@@ -42,7 +42,7 @@ resource "null_resource" "setup_dns_server" {
 resource "null_resource" "add_master_node_dns_record" {
   depends_on = ["null_resource.master_dependsOn", "null_resource.setup_dns_server"]
   
-  count = "${var.action == "addMaster" ? length(var.node_ips) : 0}"
+  count = "${var.action == "addMaster" ? var.node_count : 0}"
 
   connection {
     type                = "ssh"
@@ -67,6 +67,7 @@ resource "null_resource" "add_master_node_dns_record" {
     inline = [
       "set -e",
       "chmod 755 /tmp/config_dns.sh",
+      "echo Process ${var.node_ips[count.index]}",
       "bash -c '/tmp/config_dns.sh -ac ${var.action} -cn ${var.cluster_name} -dn ${var.domain_name} -ni ${var.node_ips[count.index]} -nn ${var.node_names[count.index]}'"
     ]
   }
@@ -76,7 +77,7 @@ resource "null_resource" "add_master_node_dns_record" {
 resource "null_resource" "add_worker_node_dns_record" {
   depends_on = ["null_resource.master_dependsOn", "null_resource.setup_dns_server", "null_resource.add_master_node_dns_record"]
   
-  count = "${var.action == "addWorker" ? length(var.node_ips) : 0}"
+  count = "${var.action == "addWorker" ? var.node_count : 0}"
 
   connection {
     type                = "ssh"
@@ -101,6 +102,7 @@ resource "null_resource" "add_worker_node_dns_record" {
     inline = [
       "set -e",
       "chmod 755 /tmp/config_dns.sh",
+      "echo Process ${var.node_ips[count.index]}",
       "bash -c '/tmp/config_dns.sh -ac ${var.action} -cn ${var.cluster_name} -dn ${var.domain_name} -ni ${var.node_ips[count.index]} -nn ${var.node_names[count.index]}'"
     ]
   }

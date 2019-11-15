@@ -97,7 +97,7 @@ function addClusterDnsRecords() {
     echo "Adding Cluster DNS records..."
     ## Add DNS records for Kubernetes API to /etc/hosts
     echo "## Kubernetes API" >> ${HOSTS_FILE}
-    for prefix in api api_int; do
+    for prefix in api api-int; do
         echo "${CLUSTER_IP}    ${prefix}.${CLUSTER_NAME}.${DOMAIN_NAME}" >> ${HOSTS_FILE}
     done
 
@@ -212,7 +212,7 @@ function performAction() {
         createBackups
         installDnsmasq
         configureDnsmasq
-        configureFirewall
+        #configureFirewall
         addClusterDnsRecords
     fi
     
@@ -222,7 +222,7 @@ function performAction() {
     fi
     
     ## Configuration and/or DNS records have been updated; (Re)Start dnsmasq
-    startDnsmasq
+    #startDnsmasq
 }
 
 

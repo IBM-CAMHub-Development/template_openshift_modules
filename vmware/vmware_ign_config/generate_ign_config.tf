@@ -105,8 +105,23 @@ resource "camc_scriptpackage" "get_bootstrap_sec_ign" {
     bastion_password    = "${var.bastion_password}"            	
 }
 
+resource "camc_scriptpackage" "get_cluster_key" {
+	depends_on = ["null_resource.generate_ign_config"]
+  	program = ["sudo cat ~/.ssh/id_rsa_ocp | base64 -w0"]
+  	on_create = true
+    remote_user = "${var.vm_os_user}"
+    remote_password =  "${var.vm_os_password}"
+    remote_key = "${var.vm_os_private_key_base64}"
+    remote_host = "${var.vm_ipv4_address}"
+    bastion_host        = "${var.bastion_host}"
+    bastion_user        = "${var.bastion_user}"
+    bastion_private_key = "${length(var.bastion_private_key) > 0 ? base64decode(var.bastion_private_key) : var.bastion_private_key}"
+    bastion_port        = "${var.bastion_port}"
+    bastion_password    = "${var.bastion_password}"            	
+}
+
 resource "null_resource" "ign_config_generated" {
-  depends_on = ["null_resource.generate_ign_config","null_resource.generate_ign_config_dependsOn"]
+  depends_on = ["null_resource.generate_ign_config","camc_scriptpackage.get_bootstrap_ign","camc_scriptpackage.get_cluster_key","camc_scriptpackage.get_bootstrap_sec_ign","camc_scriptpackage.get_worker_ign","camc_scriptpackage.get_master_ign","null_resource.generate_ign_config_dependsOn"]
   provisioner "local-exec" {
     command = "echo 'Ign config created'" 
   }

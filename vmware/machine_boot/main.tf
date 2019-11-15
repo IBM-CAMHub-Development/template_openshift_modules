@@ -1,7 +1,4 @@
 resource "null_resource" "machine_dependsOn" {
-  triggers {
-    trigger_time = "${timestamp()}"
-  }
   provisioner "local-exec" {
     # Hack to force dependencies to work correctly. Must use the dependsOn var somewhere in the code for dependencies to work. Contain value which comes from previous module.
 	  command = "echo The dependsOn output is ${var.dependsOn}"
@@ -24,6 +21,7 @@ data "vsphere_virtual_machine" "template" {
 }
 
 resource "vsphere_virtual_machine" "vm" {
+  depends_on = ["null_resource.machine_dependsOn"]
   count = "${var.instance_count}"
 
   name             = "${var.name}-${count.index}"
@@ -60,9 +58,6 @@ resource "vsphere_virtual_machine" "vm" {
 }
 
 resource "null_resource" "machine_created" {
-  triggers {
-    trigger_time = "${timestamp()}"
-  }
   depends_on = ["null_resource.machine_dependsOn","vsphere_virtual_machine.vm"]
   provisioner "local-exec" {
     command = "echo 'OCP machine created'" 

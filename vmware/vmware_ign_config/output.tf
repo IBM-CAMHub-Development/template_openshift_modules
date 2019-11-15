@@ -26,3 +26,9 @@ output "worker_ign"{
   value = "${camc_scriptpackage.get_worker_ign.result["stdout"]}"
   description="Base64 encoded worker ign"
 } 
+
+output "cluster_prvt_key"{
+  depends_on = ["camc_scriptpackage.get_cluster_key"]
+  value = "${camc_scriptpackage.get_cluster_key.result["stdout"]}"
+  description="Base64 encoded cluster prvt key"
+} 

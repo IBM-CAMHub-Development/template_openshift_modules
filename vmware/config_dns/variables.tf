@@ -10,3 +10,4 @@ variable "cluster_ip"           { default = ""     type = "string"  description 
 variable "node_ips"             { default = []     type = "list"    description = "IP address(es) of the node(s) within the cluster" }
 variable "node_names"           { default = []     type = "list"    description = "Name(s) of the node(s) within the cluster" }
 variable "dependsOn"            { default = "true"                  description = "Boolean for dependency"}
+variable "node_count"            { default = "0" type = "string" description = "Number of nodes"}
