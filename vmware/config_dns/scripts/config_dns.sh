@@ -222,7 +222,7 @@ function performAction() {
     fi
     
     ## Configuration and/or DNS records have been updated; (Re)Start dnsmasq
-    #startDnsmasq
+    startDnsmasq
 }
 
 

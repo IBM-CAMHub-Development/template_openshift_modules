@@ -66,7 +66,7 @@ do
     break
   fi
 done
-if [ $counter > 10 ]; then
+if [ "$counter" -gt 10 ]; then
   echo "Cluster operator is still unavailable after 10 tries, exiting script..."
   exit 1
 fi
