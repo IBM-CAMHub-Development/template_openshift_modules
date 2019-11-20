@@ -135,6 +135,26 @@ function addNodeDnsRecords() {
     fi
 }
 
+## Configure dnsmasq for DHCP using given cluster information
+function configureDhcp() {
+    echo "Configuring DHCP within dnsmasq..."
+
+    ## Append DHCP configuration to dnsmasq configuration file
+    cat >> ${CONFIG_FILE} <<EOT
+
+## DHCP configuration options
+interface=${DHCP_INTERFACE}
+dhcp-range=${DHCP_IP_START},${DHCP_IP_END},${DHCP_NETMASK},${DHCP_LEASE_TIME}
+dhcp-option=option:router,${DHCP_ROUTER_IP}
+dhcp-authoritative
+log-dhcp
+log-queries
+log-async
+log-facility=/var/log/dnsmasq.log
+
+EOT
+}
+
 ## Enable and start dnsmasq
 function startDnsmasq() {
     echo "Starting dnsmasq..."
@@ -181,6 +201,34 @@ function verifyInputs() {
             exit 1
         fi
     fi
+    
+    ## Verify inputs for 'dhcp' action
+    if [ "${ACTION}" == "dhcp" ]; then
+        if [ -z "$(echo "${DHCP_INTERFACE}" | tr -d '[:space:]')" ]; then
+            echo "${WARN_ON}Interface name for DHCP requests has not been provided; Exiting...${WARN_OFF}"
+            exit 1
+        fi
+        if [ -z "$(echo "${DHCP_IP_START}" | tr -d '[:space:]')" ]; then
+            echo "${WARN_ON}Starting IP address for range of DHCP leases has not been provided; Exiting...${WARN_OFF}"
+            exit 1
+        fi
+        if [ -z "$(echo "${DHCP_IP_END}" | tr -d '[:space:]')" ]; then
+            echo "${WARN_ON}Ending IP address for range of DHCP leases has not been provided; Exiting...${WARN_OFF}"
+            exit 1
+        fi
+        if [ -z "$(echo "${DHCP_ROUTER_IP}" | tr -d '[:space:]')" ]; then
+            echo "${WARN_ON}Router IP address for DHCP requests has not been provided; Exiting...${WARN_OFF}"
+            exit 1
+        fi
+        if [ -z "$(echo "${DHCP_NETMASK}" | tr -d '[:space:]')" ]; then
+            echo "${WARN_ON}Netmask for DHCP requests has not been provided; Exiting...${WARN_OFF}"
+            exit 1
+        fi
+        if [ -z "$(echo "${DHCP_LEASE_TIME}" | tr -d '[:space:]')" ]; then
+            echo "${WARN_ON}Time for DHCP leases has not been provided; Exiting...${WARN_OFF}"
+            exit 1
+        fi
+    fi
 }
 
 ## Perform the requested action
@@ -196,6 +244,11 @@ function performAction() {
         addClusterDnsRecords
     fi
     
+    ## Configure DHCP
+    if [ "${ACTION}" == "dhcp" ]; then
+        configureDhcp
+    fi
+    
     ## Add DNS record for node
     if [ "${ACTION}" == "addmaster"  -o  "${ACTION}" == "addworker" ]; then
     	NUM_IPS=${#nodeiparray[@]}
@@ -208,27 +261,32 @@ function performAction() {
     startDnsmasq
 }
 
-
 ## Gather and verify information provided via the command line parameters
 while test ${#} -gt 0; do
-    [[ $1 =~ ^-ac|--action ]]       && { ACTION="${2}";          shift 2; continue; };
-    [[ $1 =~ ^-ci|--clusterip ]]    && { CLUSTER_IP="${2}";      shift 2; continue; };
-    [[ $1 =~ ^-cn|--clustername ]]  && { CLUSTER_NAME="${2}";    shift 2; continue; };
-    [[ $1 =~ ^-dn|--domainname ]]   && { DOMAIN_NAME="${2}";     shift 2; continue; };
-    [[ $1 =~ ^-ip|--dnsserverip ]]  && { DNS_SERVER_IP="${2}";   shift 2; continue; };
-    [[ $1 =~ ^-ni|--nodeip ]]       && { NODE_IP="${2}";         shift 2; continue; };
-    [[ $1 =~ ^-nn|--nodename ]]     && { NODE_NAME="${2}";       shift 2; continue; };
+    [[ $1 =~ ^-ac|--action ]]         && { ACTION="${2}";          shift 2; continue; };
+    [[ $1 =~ ^-ci|--clusterip ]]      && { CLUSTER_IP="${2}";      shift 2; continue; };
+    [[ $1 =~ ^-cn|--clustername ]]    && { CLUSTER_NAME="${2}";    shift 2; continue; };
+    [[ $1 =~ ^-dn|--domainname ]]     && { DOMAIN_NAME="${2}";     shift 2; continue; };
+    [[ $1 =~ ^-ip|--dnsserverip ]]    && { DNS_SERVER_IP="${2}";   shift 2; continue; };
+    [[ $1 =~ ^-ni|--nodeip ]]         && { NODE_IP="${2}";         shift 2; continue; };
+    [[ $1 =~ ^-nn|--nodename ]]       && { NODE_NAME="${2}";       shift 2; continue; };
+    
+    [[ $1 =~ ^-di|--dhcpinterface ]]  && { DHCP_INTERFACE="${2}";  shift 2; continue; };
+    [[ $1 =~ ^-dr|--dhcprouterip ]]   && { DHCP_ROUTER_IP="${2}";  shift 2; continue; };
+    [[ $1 =~ ^-ds|--dhcpipstart ]]    && { DHCP_IP_START="${2}";   shift 2; continue; };
+    [[ $1 =~ ^-de|--dhcpipend ]]      && { DHCP_IP_END="${2}";     shift 2; continue; };
+    [[ $1 =~ ^-dm|--dhcpnetmask ]]    && { DHCP_NETMASK="${2}";    shift 2; continue; };
+    [[ $1 =~ ^-dl|--dhcpleasetime ]]  && { DHCP_LEASE_TIME="${2}"; shift 2; continue; }
     break;
 done
 ACTION="$(echo "${ACTION}" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
-if [ "${ACTION}" != "setup"  -a  "${ACTION}" != "addmaster"  -a  "${ACTION}" != "addworker" ]; then
-    echo "${WARN_ON}Action (e.g. setup, addMaster, addWorker) has not been specified; Exiting...${WARN_OFF}"
+if [ "${ACTION}" != "setup"  -a  "${ACTION}" != "dhcp"  -a  "${ACTION}" != "addmaster"  -a  "${ACTION}" != "addworker" ]; then
+    echo "${WARN_ON}Action (e.g. setup, dhcp, addMaster, addWorker) has not been specified; Exiting...${WARN_OFF}"
     exit 1
 fi
 IFS=',' read -a nodeiparray <<< "${NODE_IP}"
 IFS=',' read -a nodenamearray <<< "${NODE_NAME}"
 verifyInputs
-
 
 ## Default variable values
 CONFIG_FILE="/etc/dnsmasq.conf"

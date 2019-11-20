@@ -7,7 +7,14 @@ variable "action"               { default = ""     type = "string"  description 
 variable "domain_name"          { default = ""     type = "string"  description = "Name of the base domain for the cluster" }
 variable "cluster_name"         { default = ""     type = "string"  description = "Name of the cluster" }
 variable "cluster_ip"           { default = ""     type = "string"  description = "IP address of the cluster" }
-variable "node_ips"             { default = ""     type = "string"    description = "Comma separated IP address(es) of the node(s) within the cluster" }
-variable "node_names"           { default = ""     type = "string"    description = "Comma separated Name(s) of the node(s) within the cluster" }
+variable "node_ips"             { default = ""     type = "string"  description = "Comma separated IP address(es) of the node(s) within the cluster" }
+variable "node_names"           { default = ""     type = "string"  description = "Comma separated Name(s) of the node(s) within the cluster" }
+
+variable "dhcp_interface"       { default = ""     type = "string"  description = "Name of the interface used to handle DHCP requests" }
+variable "dhcp_router_ip"       { default = ""     type = "string"  description = "IP address for the DHCP router configuration" }
+variable "dhcp_ip_range_start"  { default = ""     type = "string"  description = "IP address for the start of the DHCP IP address range" }
+variable "dhcp_ip_range_end"    { default = ""     type = "string"  description = "IP address for the end of the DHCP IP address range" }
+variable "dhcp_netmask"         { default = ""     type = "string"  description = "Netmask used for the DHCP configuration" }
+variable "dhcp_lease_time"      { default = ""     type = "string"  description = "Length of time to be assigned to a DHCP lease" }
+
 variable "dependsOn"            { default = "true"                  description = "Boolean for dependency"}
-#variable "node_count"            { default = "0" type = "string" description = "Number of nodes"}

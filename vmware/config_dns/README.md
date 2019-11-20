@@ -10,9 +10,10 @@ The VM should be configured with appropriate subscriptions to any package reposi
 
 ## Usage
 
-This module may be used to perform three distinct actions related to configuring and maintaining the DNS server:
+This module may be used to perform four distinct actions related to configuring and maintaining the DNS server:
 
 - Install and configure the 'dnsmasq' utility that provides the DNS functionality
+- Configure the 'dnsmasq' utility to support DHCP requests
 - Add one or more DNS records corresponding to the control plane (master) node(s) within the OCP cluster
 - Add one or more DNS records corresponding to the worker node(s) within the OCP cluster
 
@@ -20,7 +21,7 @@ This module may be used to perform three distinct actions related to configuring
 
 | Parameter Name                  | Parameter Description | Required | Allowed Values |
 | :---                            | :--- | :--- | :--- |
-| action                          | The action to be performed by the module execution | true | setup, addMaster, addWorker |
+| action                          | The action to be performed by the module execution | true | setup, dhcp, addMaster, addWorker |
 | dns\_server\_ip                 | IP address of the server where DNS will be configured | true | |
 | vm\_os\_user                    | Login name used to connect to the VM for the purpose of managing the DNS server; Must have 'sudo' privileges | true | |
 | vm\_os\_password                | Password used to connect to the VM for the purpose of managing the DNS server; Alternative to using a private SSH key | | |
@@ -38,6 +39,15 @@ For installation and configuration of the DNS server (action = setup)
 | cluster_ip                      | IP address (i.e. load balancer) used to access the OCP cluster | true | |
 | cluster_name                    | Name of the OCP cluster | true | |
 | domain_name                     | Base domain name of the OCP cluster | true | |
+
+For configuration of the DHCP server (action = dhcp)
+| Parameter Name                  | Parameter Description | Required | Allowed Values |
+| :---                            | :--- | :--- | :--- |
+| dhcp_interface                  | Name of the interface used to handle DHCP requests | true | |
+| dhcp\_ip\_range\_start          | IP address for the start of the DHCP IP address range | true | |
+| dhcp\_ip\_range\_end            | IP address for the end of the DHCP IP address range | true | |
+| dhcp_netmask                    | Netmask used for the DHCP configuration | true | |
+| dhcp\_lease\_time               | Length of time to be assigned to a DHCP lease | true | |
 
 For adding DNS record(s) corresponding to the control plane (master) node(s) within the OCP cluster (action = addMaster)
 | Parameter Name                  | Parameter Description | Required | Allowed Values |

@@ -39,8 +39,42 @@ resource "null_resource" "setup_dns_server" {
 }
 
 
-resource "null_resource" "add_master_node_dns_record" {
+resource "null_resource" "setup_dhcp" {
   depends_on = ["null_resource.master_dependsOn", "null_resource.setup_dns_server"]
+  
+  count = "${var.action == "dhcp" ? 1 : 0}"
+
+  connection {
+    type                = "ssh"
+    user                = "${var.vm_os_user}"
+    password            = "${var.vm_os_password}"
+    private_key         = "${var.private_key}"
+    host                = "${var.dns_server_ip}"
+    bastion_host        = "${var.bastion_host}"
+    bastion_user        = "${var.bastion_user}"
+    bastion_private_key = "${length(var.bastion_private_key) > 0 ? base64decode(var.bastion_private_key) : var.bastion_private_key}"
+    bastion_port        = "${var.bastion_port}"
+    bastion_host_key    = "${var.bastion_host_key}"
+    bastion_password    = "${var.bastion_password}"      
+  }
+
+  provisioner "file" {
+    source = "${path.module}/scripts/config_dns.sh"
+    destination = "/tmp/config_dns.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "set -e",
+      "chmod 755 /tmp/config_dns.sh",
+      "bash -c '/tmp/config_dns.sh -ac ${var.action} -di ${var.dhcp_interface} -dr ${var.dhcp_router_ip} -ds ${var.dhcp_ip_range_start} -de ${var.dhcp_ip_range_end} -dm ${var.dhcp_netmask} -dl ${var.dhcp_lease_time}'"
+    ]
+  }
+}
+
+
+resource "null_resource" "add_master_node_dns_record" {
+  depends_on = ["null_resource.master_dependsOn", "null_resource.setup_dns_server", "null_resource.setup_dhcp"]
   count = "${var.action == "addMaster" ? 1 : 0}"
   connection {
     type                = "ssh"
@@ -72,7 +106,7 @@ resource "null_resource" "add_master_node_dns_record" {
 
 
 resource "null_resource" "add_worker_node_dns_record" {
-  depends_on = ["null_resource.master_dependsOn", "null_resource.setup_dns_server", "null_resource.add_master_node_dns_record"]
+  depends_on = ["null_resource.master_dependsOn", "null_resource.setup_dns_server", "null_resource.setup_dhcp", "null_resource.add_master_node_dns_record"]
   count = "${var.action == "addWorker" ? 1 : 0}"
   connection {
     type                = "ssh"
@@ -104,7 +138,7 @@ resource "null_resource" "add_worker_node_dns_record" {
 
 
 resource "null_resource" "finish_config_dns" {
-  depends_on = ["null_resource.setup_dns_server", "null_resource.add_master_node_dns_record", "null_resource.add_worker_node_dns_record"]
+  depends_on = ["null_resource.setup_dns_server", "null_resource.setup_dhcp", "null_resource.add_master_node_dns_record", "null_resource.add_worker_node_dns_record"]
   provisioner "local-exec" {
     command = "echo 'Configuring DNS server finished successfully.'"
   }
