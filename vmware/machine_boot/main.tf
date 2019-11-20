@@ -23,7 +23,7 @@ data "vsphere_virtual_machine" "template" {
 resource "vsphere_virtual_machine" "vm" {
   depends_on = ["null_resource.machine_dependsOn"]
   count = "${var.instance_count}"
-
+  wait_for_guest_net_timeout = "${var.wait_for_guest_net_timeout}"
   name             = "${var.name}-${count.index}"
   resource_pool_id = "${var.resource_pool_id}"
   datastore_id     = "${data.vsphere_datastore.datastore.id}"

@@ -27,6 +27,11 @@ resource "null_resource" "generate_ign_config" {
   }
   
   provisioner "file" {
+    source = "${path.module}/scripts/config_firewall.sh"
+    destination = "/tmp/config_firewall.sh"
+  }  
+  
+  provisioner "file" {
     source = "${path.module}/scripts/install-config.yaml.tmpl"
     destination = "/tmp/install-config.yaml.tmpl"
   }   
@@ -39,8 +44,9 @@ resource "null_resource" "generate_ign_config" {
   provisioner "remote-exec" {
     inline = [
       "set -e",
-      "chmod +x /tmp/config_infra.sh",
-      "bash -c '/tmp/config_infra.sh -h ${var.vm_ipv4_address} -oc ${var.ocversion} -d ${var.domain} -n ${var.controlnodes} -cn ${var.clustername} -vc ${var.vcenter} -vu ${var.vcenteruser} -vp ${var.vcenterpassword} -vd ${var.vcenterdatacenter} -vs ${var.vmwaredatastore} -s ${var.pullsecret}'"
+      "chmod +x /tmp/config_infra.sh /tmp/config_firewall.sh",
+      "bash -c '/tmp/config_firewall.sh ${var.vm_ipv4_private_address} ${var.vm_ipv4_address}'",
+      "bash -c '/tmp/config_infra.sh -h ${var.vm_ipv4_private_address} -oc ${var.ocversion} -d ${var.domain} -n ${var.controlnodes} -cn ${var.clustername} -vc ${var.vcenter} -vu ${var.vcenteruser} -vp ${var.vcenterpassword} -vd ${var.vcenterdatacenter} -vs ${var.vmwaredatastore} -s ${var.pullsecret}'"
     ]
   }
 }
@@ -61,7 +67,7 @@ resource "camc_scriptpackage" "get_bootstrap_ign" {
 }
 
 resource "camc_scriptpackage" "get_master_ign" {
-	depends_on = ["null_resource.generate_ign_config"]
+	depends_on = ["camc_scriptpackage.get_bootstrap_ign"]
   	program = ["sudo cat /installer/master.ign | base64 -w0"]
   	on_create = true
     remote_user = "${var.vm_os_user}"
@@ -76,7 +82,7 @@ resource "camc_scriptpackage" "get_master_ign" {
 }
 
 resource "camc_scriptpackage" "get_worker_ign" {
-	depends_on = ["null_resource.generate_ign_config"]
+	depends_on = ["camc_scriptpackage.get_master_ign"]
   	program = ["sudo cat /installer/worker.ign | base64 -w0"]
   	on_create = true
     remote_user = "${var.vm_os_user}"
@@ -91,7 +97,7 @@ resource "camc_scriptpackage" "get_worker_ign" {
 }
 
 resource "camc_scriptpackage" "get_bootstrap_sec_ign" {
-	depends_on = ["null_resource.generate_ign_config"]
+	depends_on = ["camc_scriptpackage.get_worker_ign"]
   	program = ["sudo cat /installer/sec_bootstrap.ign | base64 -w0"]
   	on_create = true
     remote_user = "${var.vm_os_user}"
@@ -106,7 +112,7 @@ resource "camc_scriptpackage" "get_bootstrap_sec_ign" {
 }
 
 resource "camc_scriptpackage" "get_cluster_key" {
-	depends_on = ["null_resource.generate_ign_config"]
+	depends_on = ["camc_scriptpackage.get_bootstrap_sec_ign"]
   	program = ["sudo cat ~/.ssh/id_rsa_ocp | base64 -w0"]
   	on_create = true
     remote_user = "${var.vm_os_user}"

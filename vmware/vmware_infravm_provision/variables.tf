@@ -13,8 +13,12 @@ data "vsphere_resource_pool" "vsphere_resource_pool" {
   name = "${var.vsphere_resource_pool}"
   datacenter_id = "${data.vsphere_datacenter.vsphere_datacenter.id}"
 }
-data "vsphere_network" "vm_network" {
-  name = "${var.vm_network_interface_label}"
+data "vsphere_network" "vm_public_network" {
+  name = "${var.vm_public_network_interface_label}"
+  datacenter_id = "${data.vsphere_datacenter.vsphere_datacenter.id}"
+}
+data "vsphere_network" "vm_private_network" {
+  name = "${var.vm_private_network_interface_label}"
   datacenter_id = "${data.vsphere_datacenter.vsphere_datacenter.id}"
 }
 
@@ -85,8 +89,12 @@ variable "vm_dns_servers" {
   description = "DNS servers for the virtual network adapter"
 }
 
-variable "vm_network_interface_label" {
-  description = "vSphere port group or network label for virtual machine's vNIC"
+variable "vm_public_network_interface_label" {
+  description = "vSphere port group or network label for virtual machine's public vNIC"
+}
+
+variable "vm_private_network_interface_label" {
+  description = "vSphere port group or network label for virtual machine's private vNIC"
 }
 
 variable "vm_ipv4_gateway" {
@@ -98,11 +106,25 @@ variable "vm_ipv4_address" {
   type = "string"
 }
 
+variable "vm_ipv4_private_address" {
+  description = "IPv4 address for private vNIC configuration"
+  type = "string"
+}
+
 variable "vm_ipv4_prefix_length" {
   description = "IPv4 prefix length for vNIC configuration. The value must be a number between 8 and 32"
 }
 
-variable "vm_adapter_type" {
+variable "vm_private_ipv4_prefix_length" {
+  description = "IPv4 prefix length for private vNIC configuration. The value must be a number between 8 and 32"
+}
+
+variable "vm_private_adapter_type" {
+  description = "Network adapter type for vNIC Configuration"
+  default = "vmxnet3"
+}
+
+variable "vm_public_adapter_type" {
   description = "Network adapter type for vNIC Configuration"
   default = "vmxnet3"
 }

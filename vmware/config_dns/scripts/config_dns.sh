@@ -72,7 +72,7 @@ bind-dynamic
 log-queries
 resolv-file=${RESOLV_DNSMASQ}
 
-listen-address=::1,127.0.0.1,${DNS_SERVER_IP}
+listen-address=::1,127.0.0.1,${DNS_SERVER_IP},${CLUSTER_IP}
 domain=${DOMAIN_NAME}
 local=/${DOMAIN_NAME}/
 EOT
@@ -108,6 +108,8 @@ function addClusterDnsRecords() {
 
 ## Add DNS records for the nodes in the cluster
 function addNodeDnsRecords() {
+	A_NODE_IP=$1
+	A_NODE_NAME=$2
     if [ "${ACTION}" == "addmaster" ]; then
         ## Determine next available index based on last index of any previously added master nodes
         index=0
@@ -126,31 +128,10 @@ function addNodeDnsRecords() {
         echo "srv-host=${service},${masterNode},${port},${priority},${weight}" >> ${CONFIG_FILE}
         
         ## Add IP address for master node to hosts file
-        echo "${NODE_IP}  ${masterNode}  ${NODE_NAME}" >> ${HOSTS_FILE}
+        echo "${A_NODE_IP}  ${masterNode}  ${A_NODE_NAME}" >> ${HOSTS_FILE}
     elif [ "${ACTION}" == "addworker" ]; then
         ## Add IP address for worker node to hosts file
-        echo "${NODE_IP}  ${NODE_NAME}" >> ${HOSTS_FILE}
-    fi
-}
-
-## Configure the firewall to allow external servers to access the DNS
-function configureFirewall() {
-    echo "Configuring ports to allow access to DNS..."
-    if [[ ${PLATFORM} == *"ubuntu"* ]]; then
-        sudo systemctl disable systemd-resolved
-        sudo systemctl stop systemd-resolved
-        
-        echo "y" | sudo ufw enable
-        sudo ufw allow out 53/tcp
-        sudo ufw allow out 53/udp
-        echo "y" | sudo ufw disable
-        echo "y" | sudo ufw enable
-        echo "y" | sudo ufw reset
-    elif [[ ${PLATFORM} == *"rhel"* ]]; then
-        sudo systemctl start firewalld
-        sudo firewall-cmd --zone=public --add-port=53/tcp --permanent
-        sudo firewall-cmd --zone=public --add-port=53/udp --permanent
-        sudo firewall-cmd --reload
+        echo "${A_NODE_IP}  ${A_NODE_NAME}" >> ${HOSTS_FILE}
     fi
 }
 
@@ -212,13 +193,15 @@ function performAction() {
         createBackups
         installDnsmasq
         configureDnsmasq
-        #configureFirewall
         addClusterDnsRecords
     fi
     
     ## Add DNS record for node
     if [ "${ACTION}" == "addmaster"  -o  "${ACTION}" == "addworker" ]; then
-        addNodeDnsRecords
+    	NUM_IPS=${#nodeiparray[@]}
+    	for ((i=0; i < ${NUM_IPS}; i++)); do
+        	addNodeDnsRecords ${nodeiparray[i]} ${nodenamearray[i]}
+    	done
     fi
     
     ## Configuration and/or DNS records have been updated; (Re)Start dnsmasq
@@ -242,6 +225,8 @@ if [ "${ACTION}" != "setup"  -a  "${ACTION}" != "addmaster"  -a  "${ACTION}" != 
     echo "${WARN_ON}Action (e.g. setup, addMaster, addWorker) has not been specified; Exiting...${WARN_OFF}"
     exit 1
 fi
+IFS=',' read -a nodeiparray <<< "${NODE_IP}"
+IFS=',' read -a nodenamearray <<< "${NODE_NAME}"
 verifyInputs
 
 

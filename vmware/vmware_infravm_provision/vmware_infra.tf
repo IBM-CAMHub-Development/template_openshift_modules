@@ -23,6 +23,11 @@ resource "vsphere_virtual_machine" "vm" {
         ipv4_address = "${var.vm_ipv4_address}"
         ipv4_netmask = "${var.vm_ipv4_prefix_length}"
       }
+      
+      network_interface {
+        ipv4_address = "${var.vm_ipv4_private_address}"
+        ipv4_netmask = "24"
+      }      
 
       ipv4_gateway    = "${var.vm_ipv4_gateway}"
       dns_suffix_list = "${var.vm_dns_suffixes}"
@@ -31,10 +36,15 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   network_interface {
-    network_id   = "${data.vsphere_network.vm_network.id}"
-    adapter_type = "${var.vm_adapter_type}"
+    network_id   = "${data.vsphere_network.vm_public_network.id}"
+    adapter_type = "${var.vm_public_adapter_type}"
   }
-
+  
+  network_interface {
+    network_id   = "${data.vsphere_network.vm_private_network.id}"
+    adapter_type = "${var.vm_private_adapter_type}"
+  }
+  
   disk {
     label          = "${var.vm_name}.vmdk"
     size           = "${var.vm_disk1_size}"
@@ -189,6 +199,11 @@ resource "vsphere_virtual_machine" "vm2disk" {
         ipv4_address = "${var.vm_ipv4_address}"
         ipv4_netmask = "${var.vm_ipv4_prefix_length}"
       }
+      
+      network_interface {
+        ipv4_address = "${var.vm_ipv4_private_address}"
+        ipv4_netmask = "${var.vm_private_ipv4_prefix_length}"
+      }      
 
       ipv4_gateway    = "${var.vm_ipv4_gateway}"
       dns_suffix_list = "${var.vm_dns_suffixes}"
@@ -197,8 +212,13 @@ resource "vsphere_virtual_machine" "vm2disk" {
   }
 
   network_interface {
-    network_id   = "${data.vsphere_network.vm_network.id}"
-    adapter_type = "${var.vm_adapter_type}"
+    network_id   = "${data.vsphere_network.vm_public_network.id}"
+    adapter_type = "${var.vm_public_adapter_type}"
+  }
+  
+  network_interface {
+    network_id   = "${data.vsphere_network.vm_private_network.id}"
+    adapter_type = "${var.vm_private_adapter_type}"
   }
 
   disk {

@@ -66,3 +66,8 @@ variable "dependsOn" {
   default = "true"
   description = "Boolean for dependency"
 }
+
+variable "wait_for_guest_net_timeout" {
+  default = "5"
+  description = "Wait for IP to show up"
+}

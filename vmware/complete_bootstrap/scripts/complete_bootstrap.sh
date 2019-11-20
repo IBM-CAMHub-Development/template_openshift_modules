@@ -9,7 +9,7 @@ DOMAIN_NAME=$2
 INFRA_IP=$3
 NODES=$4
 
-echo ${INFRA_IP} api.${CLUSTER_NAME}.${DOMAIN_NAME} | sudo tee -a /etc/hosts
+#echo ${INFRA_IP} api.${CLUSTER_NAME}.${DOMAIN_NAME} | sudo tee -a /etc/hosts
 
 
 sudo /usr/local/bin/openshift-install wait-for bootstrap-complete --dir=/installer --log-level info

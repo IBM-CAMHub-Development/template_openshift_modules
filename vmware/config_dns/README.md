@@ -44,13 +44,13 @@ For adding DNS record(s) corresponding to the control plane (master) node(s) wit
 | :---                            | :--- | :--- | :--- |
 | cluster_name                    | Name of the OCP cluster | true | |
 | domain_name                     | Base domain name of the OCP cluster | true | |
-| node\_ips                       | List of IP addresses corresponding to the control plane (master) nodes within the OCP cluster; List items must align with items in the node_names list | true | |
-| node\_names                     | List of hostnames corresponding to the control plane (master) nodes within the OCP cluster; List items must align with items in the node_ips list | true | |
+| node\_ips                       | Comma separated IP addresses corresponding to the control plane (master) nodes within the OCP cluster; List items must align with items in the node_names list | true | |
+| node\_names                     | Comma separated hostnames corresponding to the control plane (master) nodes within the OCP cluster; List items must align with items in the node_ips list | true | |
 
 For adding DNS record(s) corresponding to the worker node(s) within the OCP cluster (action = addWorker)
 | Parameter Name                  | Parameter Description | Required | Allowed Values |
 | :---                            | :--- | :--- | :--- |
 | cluster_name                    | Name of the OCP cluster | true | |
 | domain_name                     | Base domain name of the OCP cluster | true | |
-| node\_ips                       | List of IP addresses corresponding to the worker nodes within the OCP cluster; List items must align with items in the node_names list | true | |
-| node\_names                     | List of hostnames corresponding to the worker nodes within the OCP cluster; List items must align with items in the node_ips list | true | |
+| node\_ips                       | Comma separated IP addresses corresponding to the worker nodes within the OCP cluster; List items must align with items in the node_names list | true | |
+| node\_names                     | Comma separated  corresponding to the worker nodes within the OCP cluster; List items must align with items in the node_ips list | true | |
