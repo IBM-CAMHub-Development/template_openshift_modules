@@ -40,6 +40,11 @@ variable "controlnodes" {
   default = "3"
   description = "Number of OCP Control nodes."
 }
+variable "computenodes" {
+  type = "string"
+  default = "2"
+  description = "Number of OCP Compute nodes."
+}
 variable "vcenter" {
   type = "string"
   description = "vCenter name"

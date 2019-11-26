@@ -44,6 +44,26 @@ function create_install_config(){
 	else
 		echo "Web server folder /var/www/html not found. You must copy the boostrap.ign to web server from terraform output."
 	fi
+	for (( i=0;i<$CONTROL_NODES;i++ )); do
+		sudo cp /installer/master.ign /installer/master${i}.ign
+	    CONTROL_HOST=etcd-${i}.${CLUSTER_NAME}.${DOMAIN}
+		sudo sed -i -e 's|"storage":{}|"storage": {"files": [{"filesystem": "root","group": {},"path": "/etc/hostname","user": {},"contents": {"source": "data:text/plain;charset=utf-8,controlhost","verification": {}},"mode": 420}]}|' /installer/master${i}.ign
+		sudo sed -i -e "s|controlhost|$CONTROL_HOST|" /installer/master${i}.ign
+	done
+	for (( i=0;i<$CONTROL_NODES;i++ )); do
+		sudo cat /installer/master${i}.ign | base64 -w0 >> /installer/allmaster.ign
+		echo -n , | sudo tee -a /installer/allmaster.ign
+	done
+	for (( i=0;i<$COMPUTE_NODES;i++ )); do
+		sudo cp /installer/worker.ign /installer/worker${i}.ign
+		COMPUTE_HOST=compute-${i}.${CLUSTER_NAME}.${DOMAIN}
+		sudo sed -i -e 's|"storage":{}|"storage": {"files": [{"filesystem": "root","group": {},"path": "/etc/hostname","user": {},"contents": {"source": "data:text/plain;charset=utf-8,computehost","verification": {}},"mode": 420}]}|' /installer/worker${i}.ign
+		sudo sed -i -e "s|computehost|$COMPUTE_HOST|" /installer/worker${i}.ign			
+	done	
+	for (( i=0;i<$COMPUTE_NODES;i++ )); do
+		cat /installer/worker${i}.ign | base64 -w0 >> /installer/allworker.ign
+		echo -n , | sudo tee -a /installer/allworker.ign
+	done		
 }
 
 function verifyInputs() {
@@ -84,7 +104,10 @@ function verifyInputs() {
     fi
 	if [ -z "$(echo "${CONTROL_NODES}" | tr -d '[:space:]')" ]; then
         echo -e "${WARN}Number of control nodes is missing; using default nodes 3...${REGULAR}"
-    fi        
+    fi
+	if [ -z "$(echo "${COMPUTE_NODES}" | tr -d '[:space:]')" ]; then
+        echo -e "${WARN}Number of compute nodes is missing; using default nodes 2...${REGULAR}"
+    fi            
 }    
 
 ## Gather information provided via the command line parameters
@@ -92,6 +115,7 @@ while test ${#} -gt 0; do
     [[ $1 =~ ^-oc|--ocversion ]]           && { OCP_VERSION="${2}";                      shift 2; continue; };
     [[ $1 =~ ^-d|--domain ]]          && { DOMAIN="${2}";                    shift 2; continue; };
     [[ $1 =~ ^-n|--controlnodes ]]     && { CONTROL_NODES="${2}";                     shift 2; continue; };    	
+	[[ $1 =~ ^-m|--computenodes ]]     && { COMPUTE_NODES="${2}";                     shift 2; continue; };    	
     [[ $1 =~ ^-cn|--clustername ]]      && { CLUSTER_NAME="${2}";                shift 2; continue; };
     [[ $1 =~ ^-vc|--vcenter ]]          && { VCENTER="${2}";              shift 2; continue; };
     [[ $1 =~ ^-vu|--vcenteruser ]]      && { VCENTER_USER="${2}";          shift 2; continue; };
@@ -107,6 +131,7 @@ verifyInputs
 
 OCP_VERSION=${OCP_VERSION:-"4.2.0"}
 CONTROL_NODES=${CONTROL_NODES:-"3"}
+COMPUTE_NODES=${COMPUTE_NODES:-"2"}
 PULL_SECRET_DECODE=`echo $PULL_SECRET | base64 -d`
 gen_key
 get_installer $OCP_VERSION

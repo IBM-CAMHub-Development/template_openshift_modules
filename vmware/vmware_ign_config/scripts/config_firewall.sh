@@ -39,10 +39,12 @@ function configureFirewall() {
 		sudo ufw allow out 9000:9999/tcp
 		sudo ufw allow out 10256/tcp		
 		sudo ufw allow out 10249:10259/tcp
+		sudo ufw allow out 2049/tcp
 		sudo ufw allow out 9000:9999/udp			
 		sudo ufw allow out 4789/udp
 		sudo ufw allow out 6081/udp		
 		sudo ufw allow out 30000:32767/udp							
+		sudo ufw allow out 2049/udp
 		echo "net/ipv4/ip_forward=1" | sudo tee -a /etc/ufw/sysctl.conf
 		sudo sed -i -e 's/DEFAULT_FORWARD_POLICY=.*/DEFAULT_FORWARD_POLICY="ACCEPT"/g' /etc/default/ufw
 		sudo sed -i -e "1s|^|/*nat :POSTROUTING ACCEPT [0:0] -A POSTROUTING -o $INT -j MASQUERADE COMMIT \n|" /etc/ufw/before.rules
@@ -51,6 +53,7 @@ function configureFirewall() {
         echo "y" | sudo ufw reset
     elif [[ ${PLATFORM} == *"rhel"* ]]; then
         sudo systemctl start firewalld
+        sudo systemctl enable firewalld
     	sudo sysctl -w net.ipv4.ip_forward=1
 		echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.d/ip_forward.conf    		
     	sudo sysctl -p        	
@@ -65,21 +68,22 @@ function configureFirewall() {
 		sudo firewall-cmd --zone=public --add-port=9000-9999/tcp --permanent
 		sudo firewall-cmd --zone=public --add-port=10249-10259/tcp --permanent
 		sudo firewall-cmd --zone=public --add-port=10256/tcp --permanent
-		sudo firewall-cmd --zone=public --add-port=2379-2380/tcp --permanent					
-    	#sudo firewall-cmd --zone=public --permanent --direct --passthrough ipv4 -A FORWARD -i $PUBLIC_INT -o $PRIVATE_INT -m state --state ESTABLISHED,RELATED -j ACCEPT
-    	#sudo firewall-cmd --zone=public --permanent --direct --passthrough ipv4 -A FORWARD -i $PRIVATE_INT -j ACCEPT
-    	#sudo firewall-cmd --zone=public --permanent --direct --passthrough ipv4 -A nat -I POSTROUTING -o ${INT} -j MASQUERADE
-		sudo firewall-cmd --permanent --direct --add-rule ipv4 nat POSTROUTING 0 -o $PUBLIC_INT -j MASQUERADE
+		sudo firewall-cmd --zone=public --add-port=2379-2380/tcp --permanent		
+		sudo firewall-cmd --zone=public --add-service=nfs --permanent		
+		#sudo firewall-cmd --permanent --direct --add-rule ipv4 filter INPUT 0 -i lo -j ACCEPT -m comment --comment "Allow all loopback traffic"
+		#sudo firewall-cmd --permanent --direct --add-rule ipv4 filter INPUT 0 ! -i lo -d 127.0.0.0/8 -j REJECT -m comment --comment "Drop all traffic to 127 that doesn't use lo"
+		#sudo firewall-cmd --permanent --direct --add-rule ipv4 filter OUTPUT 0 -j ACCEPT -m comment --comment "Accept all outgoing"
+		#sudo firewall-cmd --permanent --direct --add-rule ipv4 filter INPUT 0 -j ACCEPT -m comment --comment "Accept all incoming"
+		#sudo firewall-cmd --permanent --direct --add-rule ipv4 filter INPUT 0 -m state --state ESTABLISHED,RELATED -j ACCEPT -m comment --comment "Allow all incoming on established connections"
+		sudo firewall-cmd --permanent --direct --add-rule ipv4 nat POSTROUTING 0 -o $PUBLIC_INT -j MASQUERADE			
 		sudo firewall-cmd --permanent --direct --add-rule ipv4 filter FORWARD 0 -i $PRIVATE_INT -o $PUBLIC_INT -j ACCEPT
-		sudo firewall-cmd --permanent --direct --add-rule ipv4 filter FORWARD 0 -i $PUBLIC_INT -o $PRIVATE_INT -m state --state RELATED,ESTABLISHED -j ACCEPT    		
+		sudo firewall-cmd --permanent --direct --add-rule ipv4 filter FORWARD 0 -i $PUBLIC_INT -o $PRIVATE_INT -m state --state RELATED,ESTABLISHED -j ACCEPT			
+		#sudo firewall-cmd --permanent --direct --add-rule ipv4 filter INPUT 1 -j REJECT -m comment --comment "Reject all incoming"
+		#sudo firewall-cmd --permanent --direct --add-rule ipv4 filter FORWARD 1 -j REJECT -m comment --comment "Reject all forwarded"						    		
         sudo firewall-cmd --reload
     fi
 }
-echo ${PRIVATE_IP}
-echo ${PUBLIC_IP}
-PRIVATE_INT=$(ifconfig | grep -B1 "${PRIVATE_IP}" | awk '$1!="inet" && $1!="--" {print $1}'| cut -d':' -f1)
-PUBLIC_INT=$(ifconfig | grep -B1 "${PUBLIC_IP}" | awk '$1!="inet" && $1!="--" {print $1}'| cut -d':' -f1)
-echo ${PRIVATE_INT}
-echo ${PUBLIC_INT}
+PRIVATE_INT=$(sudo ifconfig | grep -B1 "${PRIVATE_IP}" | awk '$1!="inet" && $1!="--" {print $1}'| cut -d':' -f1)
+PUBLIC_INT=$(sudo ifconfig | grep -B1 "${PUBLIC_IP}" | awk '$1!="inet" && $1!="--" {print $1}'| cut -d':' -f1)
 identifyPlatform
 configureFirewall

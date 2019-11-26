@@ -7,13 +7,8 @@ variable "instance_count" {
 }
 
 variable "ignition" {
-  type    = "string"
-  default = ""
-}
-
-variable "ignition_url" {
-  type    = "string"
-  default = ""
+  type    = "list"
+  default = []
 }
 
 variable "resource_pool_id" {
@@ -54,13 +49,13 @@ variable "disk_size" {
   default = "120"
 }
 
-variable "use_static_mac" {
-  type = "string"
-}
+#variable "use_static_mac" {
+#  type = "string"
+#}
 
-variable "mac_address" {
-  type = "list"
-}
+#variable "mac_address" {
+#  type = "list"
+#}
 
 variable "dependsOn" {
   default = "true"

@@ -124,14 +124,14 @@ function addNodeDnsRecords() {
         priority=0
         weight=10
         masterNode="etcd-${index}.${CLUSTER_NAME}.${DOMAIN_NAME}"
-        service="_etcd-server-ssl.tcp.${CLUSTER_NAME}.${DOMAIN_NAME}"
+        service="_etcd-server-ssl._tcp.${CLUSTER_NAME}.${DOMAIN_NAME}"
         echo "srv-host=${service},${masterNode},${port},${priority},${weight}" >> ${CONFIG_FILE}
         
         ## Add IP address for master node to hosts file
         echo "${A_NODE_IP}  ${masterNode}  ${A_NODE_NAME}" >> ${HOSTS_FILE}
     elif [ "${ACTION}" == "addworker" ]; then
         ## Add IP address for worker node to hosts file
-        echo "${A_NODE_IP}  ${A_NODE_NAME}" >> ${HOSTS_FILE}
+        echo "${A_NODE_IP}  ${A_NODE_NAME}.${CLUSTER_NAME}.${DOMAIN_NAME}" >> ${HOSTS_FILE}
     fi
 }
 
@@ -151,7 +151,6 @@ log-dhcp
 log-queries
 log-async
 log-facility=/var/log/dnsmasq.log
-
 EOT
 }
 

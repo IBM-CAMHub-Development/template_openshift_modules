@@ -35,8 +35,8 @@ resource "vsphere_virtual_machine" "vm" {
 
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
-    use_static_mac =  "${var.use_static_mac}"
-    mac_address = "${var.mac_address[count.index]}"
+    #use_static_mac =  "${var.use_static_mac}"
+    #mac_address = "${var.mac_address[count.index]}"
   }
 
   disk {
@@ -51,7 +51,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   vapp {
     properties {
-      "guestinfo.ignition.config.data" = "${var.ignition}"
+      "guestinfo.ignition.config.data" = "${var.ignition[count.index]}"
       "guestinfo.ignition.config.data.encoding" = "base64"
     }
   }
