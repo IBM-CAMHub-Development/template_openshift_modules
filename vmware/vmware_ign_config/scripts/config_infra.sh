@@ -172,7 +172,7 @@ if [ -f "/installer/.install_complete" ]; then
 	    create_control_ign ${CONTROL_NODES}
 	    echo "Remove control node from cluster"
 	    KUBECONFIG_FILE=/installer/auth/kubeconfig	    
-	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm cordon node etcd-${i}.${CLUSTER_NAME}.${DOMAIN}
+	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm cordon etcd-${i}.${CLUSTER_NAME}.${DOMAIN}
 	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm drain etcd-${i}.${CLUSTER_NAME}.${DOMAIN} --force --delete-local-data --ignore-daemonsets
 	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc delete node etcd-${i}.${CLUSTER_NAME}.${DOMAIN}
 	fi
@@ -193,7 +193,7 @@ if [ -f "/installer/.install_complete" ]; then
 	    create_compute_ign ${COMPUTE_NODES}
 	    echo "Remove compute node from cluster"
 	    KUBECONFIG_FILE=/installer/auth/kubeconfig
-	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm cordon node compute-${i}.${CLUSTER_NAME}.${DOMAIN}
+	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm cordon compute-${i}.${CLUSTER_NAME}.${DOMAIN}
 	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm drain compute-${i}.${CLUSTER_NAME}.${DOMAIN} --force --delete-local-data --ignore-daemonsets
 	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc delete node compute-${i}.${CLUSTER_NAME}.${DOMAIN}
 	fi	
