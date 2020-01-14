@@ -20,6 +20,10 @@ resource "null_resource" "complete_bootstrap" {
     bastion_host_key    = "${var.bastion_host_key}"
     bastion_password    = "${var.bastion_password}"     
   }
+  
+  triggers{
+  	number_nodes_changed = "${var.number_nodes}"
+  }  
 
   provisioner "file" {
     source = "${path.module}/scripts/complete_bootstrap.sh"

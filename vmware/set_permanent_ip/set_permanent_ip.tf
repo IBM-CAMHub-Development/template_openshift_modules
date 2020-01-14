@@ -20,6 +20,10 @@ resource "null_resource" "set_permanent_ip" {
     bastion_host_key    = "${var.bastion_host_key}"
     bastion_password    = "${var.bastion_password}"        
   }
+  
+  triggers{
+  	cluster_ipv4_addresses_changed = "${var.cluster_ipv4_addresses}"
+  }
 
   provisioner "file" {
     source = "${path.module}/scripts/set_permanent_ip.sh"

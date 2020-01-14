@@ -7,8 +7,8 @@ variable "instance_count" {
 }
 
 variable "ignition" {
-  type    = "list"
-  default = []
+  type    = "string"
+  default = "" 
 }
 
 variable "resource_pool_id" {

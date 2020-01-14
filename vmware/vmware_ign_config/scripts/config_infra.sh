@@ -20,7 +20,7 @@ function get_installer(){
     sudo chmod +x /usr/local/bin/oc /usr/local/bin/kubectl /usr/local/bin/openshift-install
 }
 
-function create_install_config(){
+function create_ignition_config(){
 	SSH_KEY=`sudo cat ~/.ssh/id_rsa_ocp.pub`
 	sudo mv /tmp/install-config.yaml.tmpl /installer/install-config.yaml
 	sudo mv /tmp/sec_bootstrap.ign /installer/sec_bootstrap.ign
@@ -46,7 +46,10 @@ function create_install_config(){
 	else
 		echo "Web server folder /var/www/html not found. You must copy the boostrap.ign to web server from terraform output."
 	fi
-	for (( i=0;i<$CONTROL_NODES;i++ )); do
+}
+
+function create_control_ign(){
+	for (( i=0;i<$1;i++ )); do
 		#sudo cp /installer/master.ign /installer/master${i}.ign
 		sudo cp /installer/sec_master.ign /installer/sec_master${i}.ign
 		sudo sed -i -e "s|@infra_ip@|${INFRA_IP}|" /installer/sec_master${i}.ign
@@ -56,12 +59,15 @@ function create_install_config(){
 		sudo sed -i -e 's|"storage": {}|"storage": {"files": [{"filesystem": "root","group": {},"path": "/etc/hostname","user": {},"contents": {"source": "data:text/plain;charset=utf-8,controlhost","verification": {}},"mode": 420}]}|' /installer/sec_master${i}.ign
 		sudo sed -i -e "s|controlhost|$CONTROL_HOST|" /installer/sec_master${i}.ign			
 	done
-	for (( i=0;i<$CONTROL_NODES;i++ )); do
-		#sudo cat /installer/master${i}.ign | base64 -w0 >> /installer/allmaster.ign
+	rm /installer/allmaster.ign
+	for (( i=0;i<$1;i++ )); do
 		sudo cat /installer/sec_master${i}.ign | base64 -w0 >> /installer/allmaster.ign
 		echo -n , | sudo tee -a /installer/allmaster.ign
 	done
-	for (( i=0;i<$COMPUTE_NODES;i++ )); do
+}
+
+function create_compute_ign(){
+	for (( i=0;i<$1;i++ )); do
 		#sudo cp /installer/worker.ign /installer/worker${i}.ign
 		sudo cp /installer/sec_worker.ign /installer/sec_worker${i}.ign
 		sudo sed -i -e "s|@infra_ip@|${INFRA_IP}|" /installer/sec_worker${i}.ign
@@ -71,11 +77,11 @@ function create_install_config(){
 		sudo sed -i -e 's|"storage": {}|"storage": {"files": [{"filesystem": "root","group": {},"path": "/etc/hostname","user": {},"contents": {"source": "data:text/plain;charset=utf-8,computehost","verification": {}},"mode": 420}]}|' /installer/sec_worker${i}.ign
 		sudo sed -i -e "s|computehost|$COMPUTE_HOST|" /installer/sec_worker${i}.ign						
 	done	
-	for (( i=0;i<$COMPUTE_NODES;i++ )); do
-		#cat /installer/worker${i}.ign | base64 -w0 >> /installer/allworker.ign
+	rm /installer/allworker.ign
+	for (( i=0;i<$1;i++ )); do
 		cat /installer/sec_worker${i}.ign | base64 -w0 >> /installer/allworker.ign
 		echo -n , | sudo tee -a /installer/allworker.ign
-	done		
+	done	
 }
 
 function verifyInputs() {
@@ -144,7 +150,59 @@ verifyInputs
 OCP_VERSION=${OCP_VERSION:-"4.2.0"}
 CONTROL_NODES=${CONTROL_NODES:-"3"}
 COMPUTE_NODES=${COMPUTE_NODES:-"2"}
-PULL_SECRET_DECODE=`echo $PULL_SECRET | base64 -d`
-gen_key
-get_installer $OCP_VERSION
-create_install_config
+if [ -f "/installer/.install_complete" ]; then
+	echo "Scaling operation"
+	export KUBECONFIG=/installer/auth/kubeconfig
+	CURRENT_CONTROL_NODES=$(oc get nodes --selector=node-role.kubernetes.io/master --no-headers | wc -l)
+	CURRENT_COMPUTE_NODES=$(oc get nodes --selector=node-role.kubernetes.io/worker --no-headers | wc -l)
+	if [ $CURRENT_CONTROL_NODES -lt ${CONTROL_NODES} ]; then #scale up master
+		echo "Scale up master, generate ign files for new nodes"
+		sudo cp /installer/master /installer/master.bak
+		sudo cp /var/www/html/master.ign /var/www/html/master.ign.bak		
+		sudo curl -o /installer/master -k https://api-int.${CLUSTER_NAME}.${DOMAIN}:22623/config/master
+		sudo cp /installer/master /var/www/html/master.ign		
+		create_control_ign ${CONTROL_NODES}
+	elif [ $CURRENT_CONTROL_NODES -gt ${CONTROL_NODES} ]; then #scale down master
+		echo "Scale down master"
+		for (( i=$CONTROL_NODES;i<$CURRENT_CONTROL_NODES;i++ )); do
+			echo "Remove ign for master ${i}"
+			rm /installer/sec_master${i}.ign
+	    done
+		echo "Regenerate ign files"
+	    create_control_ign ${CONTROL_NODES}
+	    echo "Remove control node from cluster"
+	    KUBECONFIG_FILE=/installer/auth/kubeconfig	    
+	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm cordon node etcd-${i}.${CLUSTER_NAME}.${DOMAIN}
+	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm drain etcd-${i}.${CLUSTER_NAME}.${DOMAIN} --force --delete-local-data --ignore-daemonsets
+	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc delete node etcd-${i}.${CLUSTER_NAME}.${DOMAIN}
+	fi
+	if [ $CURRENT_COMPUTE_NODES -lt ${COMPUTE_NODES} ]; then #scale up	worker
+		echo "Scale up worker, generate ign files for new nodes"
+		sudo cp /installer/worker /installer/worker.bak	
+		sudo cp /var/www/html/worker.ign /var/www/html/worker.ign.bak		
+		sudo curl -o /installer/worker -k https://api-int.${CLUSTER_NAME}.${DOMAIN}:22623/config/worker
+		sudo cp /installer/worker /var/www/html/worker.ign		
+		create_compute_ign ${COMPUTE_NODES}
+	elif [ $CURRENT_COMPUTE_NODES -gt ${COMPUTE_NODES} ]; then #scale down worker
+		echo "Scale down worker"
+		for (( i=$COMPUTE_NODES;i<$CURRENT_COMPUTE_NODES;i++ )); do
+			echo "Remove ign for worker ${i}"
+			rm /installer/sec_worker${i}.ign
+	    done		
+	    echo "Regenerate ign files"
+	    create_compute_ign ${COMPUTE_NODES}
+	    echo "Remove compute node from cluster"
+	    KUBECONFIG_FILE=/installer/auth/kubeconfig
+	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm cordon node compute-${i}.${CLUSTER_NAME}.${DOMAIN}
+	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm drain compute-${i}.${CLUSTER_NAME}.${DOMAIN} --force --delete-local-data --ignore-daemonsets
+	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc delete node compute-${i}.${CLUSTER_NAME}.${DOMAIN}
+	fi	
+else
+	echo "Initial install"
+	PULL_SECRET_DECODE=`echo $PULL_SECRET | base64 -d`
+	gen_key
+	get_installer $OCP_VERSION		
+	create_ignition_config
+	create_control_ign ${CONTROL_NODES}
+	create_compute_ign ${COMPUTE_NODES}
+fi
