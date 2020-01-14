@@ -167,14 +167,14 @@ if [ -f "/installer/.install_complete" ]; then
 		for (( i=$CONTROL_NODES;i<$CURRENT_CONTROL_NODES;i++ )); do
 			echo "Remove ign for master ${i}"
 			rm /installer/sec_master${i}.ign
+			echo "Remove control node etcd-${i} from cluster"
+	    	KUBECONFIG_FILE=/installer/auth/kubeconfig	    
+	    	sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm cordon etcd-${i}.${CLUSTER_NAME}.${DOMAIN}
+	    	sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm drain etcd-${i}.${CLUSTER_NAME}.${DOMAIN} --force --delete-local-data --ignore-daemonsets
+	    	sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc delete node etcd-${i}.${CLUSTER_NAME}.${DOMAIN}			
 	    done
 		echo "Regenerate ign files"
 	    create_control_ign ${CONTROL_NODES}
-	    echo "Remove control node from cluster"
-	    KUBECONFIG_FILE=/installer/auth/kubeconfig	    
-	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm cordon etcd-${i}.${CLUSTER_NAME}.${DOMAIN}
-	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm drain etcd-${i}.${CLUSTER_NAME}.${DOMAIN} --force --delete-local-data --ignore-daemonsets
-	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc delete node etcd-${i}.${CLUSTER_NAME}.${DOMAIN}
 	fi
 	if [ $CURRENT_COMPUTE_NODES -lt ${COMPUTE_NODES} ]; then #scale up	worker
 		echo "Scale up worker, generate ign files for new nodes"
@@ -188,14 +188,14 @@ if [ -f "/installer/.install_complete" ]; then
 		for (( i=$COMPUTE_NODES;i<$CURRENT_COMPUTE_NODES;i++ )); do
 			echo "Remove ign for worker ${i}"
 			rm /installer/sec_worker${i}.ign
+			echo "Remove compute node compute-${i} from cluster"
+	    	KUBECONFIG_FILE=/installer/auth/kubeconfig
+	    	sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm cordon compute-${i}.${CLUSTER_NAME}.${DOMAIN}
+	    	sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm drain compute-${i}.${CLUSTER_NAME}.${DOMAIN} --force --delete-local-data --ignore-daemonsets
+	    	sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc delete node compute-${i}.${CLUSTER_NAME}.${DOMAIN}			
 	    done		
 	    echo "Regenerate ign files"
 	    create_compute_ign ${COMPUTE_NODES}
-	    echo "Remove compute node from cluster"
-	    KUBECONFIG_FILE=/installer/auth/kubeconfig
-	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm cordon compute-${i}.${CLUSTER_NAME}.${DOMAIN}
-	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm drain compute-${i}.${CLUSTER_NAME}.${DOMAIN} --force --delete-local-data --ignore-daemonsets
-	    sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc delete node compute-${i}.${CLUSTER_NAME}.${DOMAIN}
 	fi	
 else
 	echo "Initial install"
