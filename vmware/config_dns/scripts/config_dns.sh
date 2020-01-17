@@ -110,10 +110,11 @@ function addClusterDnsRecords() {
 function addNodeDnsRecords() {
 	A_NODE_IP=$1
 	A_NODE_NAME=$2
+	CHANGED=false
     if [ "${ACTION}" == "addmaster" ]; then
     	if grep -q "$A_NODE_IP " ${HOSTS_FILE}
     	then
-    		echo "Master IP ${A_NODE_IP} added to hosts file and DNS file. Skip ${A_NODE_IP}."
+    		echo "addNodeDnsRecords Master IP ${A_NODE_IP} added to hosts file and DNS file. Skip ${A_NODE_IP}."
     	else
 	        ## Determine next available index based on last index of any previously added master nodes
 	        index=0
@@ -133,19 +134,21 @@ function addNodeDnsRecords() {
 	        
 			if grep -Fxq "$line" ${CONFIG_FILE}
 			then
-	    		echo "$line found, do not add to dnsmasq.conf"
+	    		echo "addNodeDnsRecords $line found, do not add to dnsmasq.conf"
 			else
-	   			echo "$line not found, add to dnsmasq.conf"
+	   			echo "addNodeDnsRecords $line not found, add to dnsmasq.conf"
 	   			echo "$line" >> ${CONFIG_FILE}
+	   			CHANGED=true
 			fi
 	        ## Add IP address for master node to hosts file
 	        line="${A_NODE_IP}  ${masterNode}  ${A_NODE_NAME}"
 			if grep -Fxq "$line" ${HOSTS_FILE}
 			then
-	    		echo "$line found, do not add to ${HOSTS_FILE}"
+	    		echo "addNodeDnsRecords $line found, do not add to ${HOSTS_FILE}"
 			else
-	   			echo "$line not found, add to ${HOSTS_FILE}"
+	   			echo "addNodeDnsRecords $line not found, add to ${HOSTS_FILE}"
 	   			echo "$line" >> ${HOSTS_FILE}
+	   			CHANGED=true
 			fi
 		fi
     elif [ "${ACTION}" == "addworker" ]; then
@@ -153,12 +156,16 @@ function addNodeDnsRecords() {
         line="${A_NODE_IP}  ${A_NODE_NAME}.${CLUSTER_NAME}.${DOMAIN_NAME}"
 		if grep -Fxq "$line" ${HOSTS_FILE}
 		then
-    		echo "$line found, do not add to ${HOSTS_FILE}"
+    		echo "addNodeDnsRecords $line found, do not add to ${HOSTS_FILE}"
 		else
-   			echo "$line not found, add to ${HOSTS_FILE}"
+   			echo "addNodeDnsRecords $line not found, add to ${HOSTS_FILE}"
    			echo "$line" >> ${HOSTS_FILE}
+   			CHANGED=true
 		fi        
-    fi
+    fi  
+    if [[ "$CHANGED" == "true" ]]; then
+    	touch /tmp/.restart_dnsmasq_dns
+	fi   
 }
 
 ## Configure dnsmasq for DHCP using given cluster information
@@ -182,10 +189,12 @@ EOT
 
 ## Enable and start dnsmasq
 function startDnsmasq() {
-    echo "Starting dnsmasq..."
+	now=$(date)
+    echo "${now} Starting dnsmasq..."
     sudo systemctl stop   dnsmasq
     sudo systemctl enable dnsmasq
     sudo systemctl start  dnsmasq
+    echo "${now} Started dnsmasq..."
 }
 
 
@@ -258,6 +267,7 @@ function verifyInputs() {
 
 ## Perform the requested action
 function performAction() {
+	echo "performAction Perform ${ACTION}"
     ## Determine the platform
     identifyPlatform
     
@@ -267,11 +277,15 @@ function performAction() {
         installDnsmasq
         configureDnsmasq
         addClusterDnsRecords
+    	## Configuration and/or DNS records have been updated; (Re)Start dnsmasq
+    	startDnsmasq        
     fi
     
     ## Configure DHCP
     if [ "${ACTION}" == "dhcp" ]; then
         configureDhcp
+		## Configuration and/or DNS records have been updated; (Re)Start dnsmasq
+    	startDnsmasq        
     fi
     
     ## Add / Remove DNS record for node
@@ -291,17 +305,18 @@ function performAction() {
 				found=false
 				for A_NEW_IP in "${nodeiparray[@]}"; do
 					if [[ "$A_CURRENT_IP" == "$A_NEW_IP" ]]; then
-						echo "Control plane IP ${A_CURRENT_IP} is present in current list"
+						echo "performAction Control plane IP ${A_CURRENT_IP} is present in current list"
 						found=true
 						break
 					fi
 				done
 				if [[ $found == "false" ]]; then
-					echo "Control IP ${A_CURRENT_IP} not in current list"
+					echo "performAction Control IP ${A_CURRENT_IP} not in current list"
 					HOST=`cat /etc/hosts | grep "${A_CURRENT_IP} " | awk '{ print $2}'`
 					sed -i "/${A_CURRENT_IP} /d" /etc/hosts
 					sed -i "/,${A_CURRENT_IP}$/d" /etc/dnsmasq.conf
 					sed -i "/,${HOST},/d" /etc/dnsmasq.conf
+					sudo touch /installer/.restart_dnsmasq
 				fi
 			done
 		fi
@@ -314,23 +329,28 @@ function performAction() {
 				found=false
 				for A_NEW_IP in "${nodeiparray[@]}"; do
 					if [[ "$A_CURRENT_IP" == "$A_NEW_IP" ]]; then
-						echo "Compute IP ${A_CURRENT_IP} is present in current list"
+						echo "performAction Compute IP ${A_CURRENT_IP} is present in current list"
 						found=true
 						break
 					fi
 				done
 				if [[ $found == "false" ]]; then
-					echo "Compute IP ${A_CURRENT_IP} not in current list"
+					echo "performAction Compute IP ${A_CURRENT_IP} not in current list"
 					HOST=`cat /etc/hosts | grep "${A_CURRENT_IP} " | awk '{ print $2}'`
 					sed -i "/${A_CURRENT_IP} /d" /etc/hosts		
 					sed -i "/,${A_CURRENT_IP}$/d" /etc/dnsmasq.conf		
+					touch /tmp/.restart_dnsmasq_dns
 				fi
 			done
 		fi
+		
+		if [ -f "/tmp/.restart_dnsmasq_dns" ]; then
+			## Configuration and/or DNS records have been updated; (Re)Start dnsmasq
+    		startDnsmasq
+    		rm /tmp/.restart_dnsmasq_dns
+		fi
     fi
     
-    ## Configuration and/or DNS records have been updated; (Re)Start dnsmasq
-    startDnsmasq
 }
 
 ## Gather and verify information provided via the command line parameters

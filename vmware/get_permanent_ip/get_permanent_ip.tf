@@ -30,6 +30,11 @@ resource "null_resource" "get_permanent_ip" {
     source = "${path.module}/scripts/get_control_ipv4.sh"
     destination = "/tmp/get_control_ipv4.sh"
   }  
+  
+  triggers{
+  	#control_nodes_changed = "${var.control_nodes}"
+  	compute_nodes_changed = "${var.compute_nodes}"
+  }
 
   provisioner "remote-exec" {
     inline = [
@@ -41,7 +46,8 @@ resource "null_resource" "get_permanent_ip" {
 
 resource "camc_scriptpackage" "get_compute_ip" {
 	depends_on = ["null_resource.get_permanent_ip"]
-	program = ["/bin/bash", "/tmp/get_compute_ipv4.sh ${var.compute_ip_addresses}"]
+	#program = ["/bin/bash", "/tmp/get_compute_ipv4.sh ${var.compute_nodes} ${var.get_type} ${var.control_nodes}"]
+	program = ["/bin/bash", "/tmp/get_compute_ipv4.sh ${var.compute_nodes} ${var.get_type}"]
   	on_create = true
     remote_user = "${var.vm_os_user}"
     remote_password =  "${var.vm_os_password}"
@@ -56,7 +62,8 @@ resource "camc_scriptpackage" "get_compute_ip" {
 
 resource "camc_scriptpackage" "get_control_ip" {
 	depends_on = ["camc_scriptpackage.get_compute_ip"]
-	program = ["/bin/bash", "/tmp/get_control_ipv4.sh ${var.control_ip_addresses}"]
+	#program = ["/bin/bash", "/tmp/get_control_ipv4.sh ${var.control_nodes} ${var.get_type} ${var.compute_nodes}"]
+	program = ["/bin/bash", "/tmp/get_control_ipv4.sh ${var.control_nodes} ${var.get_type}"]
   	on_create = true
     remote_user = "${var.vm_os_user}"
     remote_password =  "${var.vm_os_password}"
@@ -70,7 +77,7 @@ resource "camc_scriptpackage" "get_control_ip" {
 }
 
 resource "null_resource" "get_permanent_ip_complete" {
-  depends_on = ["null_resource.get_permanent_ip_dependsOn","camc_scriptpackage.get_control_ip"]
+  depends_on = ["null_resource.get_permanent_ip_dependsOn","null_resource.get_permanent_ip", "camc_scriptpackage.get_compute_ip", "camc_scriptpackage.get_control_ip"]
   provisioner "local-exec" {
     command = "echo 'get_permanent_ip created'" 
   }

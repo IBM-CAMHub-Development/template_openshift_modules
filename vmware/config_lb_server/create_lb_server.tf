@@ -63,9 +63,9 @@ resource "null_resource" "configapi" {
     destination = "/tmp/lb_api.tmpl"
   }
   
-  triggers{
-  	vm_ipv4_controlplane_addresses_changed="${var.vm_ipv4_controlplane_addresses}"
-  }
+  #triggers{
+  #	vm_ipv4_controlplane_addresses_changed="${var.vm_ipv4_controlplane_addresses}"
+  #}
   
   provisioner "remote-exec" {
     inline = [

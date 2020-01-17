@@ -152,9 +152,9 @@ CONTROL_NODES=${CONTROL_NODES:-"3"}
 COMPUTE_NODES=${COMPUTE_NODES:-"2"}
 if [ -f "/installer/.install_complete" ]; then
 	echo "Scaling operation"
-	export KUBECONFIG=/installer/auth/kubeconfig
-	CURRENT_CONTROL_NODES=$(oc get nodes --selector=node-role.kubernetes.io/master --no-headers | wc -l)
-	CURRENT_COMPUTE_NODES=$(oc get nodes --selector=node-role.kubernetes.io/worker --no-headers | wc -l)
+	KUBECONFIG_FILE=/installer/auth/kubeconfig
+	CURRENT_CONTROL_NODES=$(sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc get nodes --selector=node-role.kubernetes.io/master --no-headers | wc -l)
+	CURRENT_COMPUTE_NODES=$(sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc get nodes --selector=node-role.kubernetes.io/worker --no-headers | wc -l)
 	if [ $CURRENT_CONTROL_NODES -lt ${CONTROL_NODES} ]; then #scale up master
 		echo "Scale up master, generate ign files for new nodes"
 		sudo cp /installer/master /installer/master.bak
@@ -162,19 +162,6 @@ if [ -f "/installer/.install_complete" ]; then
 		sudo curl -o /installer/master -k https://api-int.${CLUSTER_NAME}.${DOMAIN}:22623/config/master
 		sudo cp /installer/master /var/www/html/master.ign		
 		create_control_ign ${CONTROL_NODES}
-	elif [ $CURRENT_CONTROL_NODES -gt ${CONTROL_NODES} ]; then #scale down master
-		echo "Scale down master"
-		for (( i=$CONTROL_NODES;i<$CURRENT_CONTROL_NODES;i++ )); do
-			echo "Remove ign for master ${i}"
-			rm /installer/sec_master${i}.ign
-			echo "Remove control node etcd-${i} from cluster"
-	    	KUBECONFIG_FILE=/installer/auth/kubeconfig	    
-	    	sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm cordon etcd-${i}.${CLUSTER_NAME}.${DOMAIN}
-	    	sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm drain etcd-${i}.${CLUSTER_NAME}.${DOMAIN} --force --delete-local-data --ignore-daemonsets
-	    	sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc delete node etcd-${i}.${CLUSTER_NAME}.${DOMAIN}			
-	    done
-		echo "Regenerate ign files"
-	    create_control_ign ${CONTROL_NODES}
 	fi
 	if [ $CURRENT_COMPUTE_NODES -lt ${COMPUTE_NODES} ]; then #scale up	worker
 		echo "Scale up worker, generate ign files for new nodes"
@@ -183,19 +170,6 @@ if [ -f "/installer/.install_complete" ]; then
 		sudo curl -o /installer/worker -k https://api-int.${CLUSTER_NAME}.${DOMAIN}:22623/config/worker
 		sudo cp /installer/worker /var/www/html/worker.ign		
 		create_compute_ign ${COMPUTE_NODES}
-	elif [ $CURRENT_COMPUTE_NODES -gt ${COMPUTE_NODES} ]; then #scale down worker
-		echo "Scale down worker"
-		for (( i=$COMPUTE_NODES;i<$CURRENT_COMPUTE_NODES;i++ )); do
-			echo "Remove ign for worker ${i}"
-			rm /installer/sec_worker${i}.ign
-			echo "Remove compute node compute-${i} from cluster"
-	    	KUBECONFIG_FILE=/installer/auth/kubeconfig
-	    	sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm cordon compute-${i}.${CLUSTER_NAME}.${DOMAIN}
-	    	sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc adm drain compute-${i}.${CLUSTER_NAME}.${DOMAIN} --force --delete-local-data --ignore-daemonsets
-	    	sudo KUBECONFIG=${KUBECONFIG_FILE} /usr/local/bin/oc delete node compute-${i}.${CLUSTER_NAME}.${DOMAIN}			
-	    done		
-	    echo "Regenerate ign files"
-	    create_compute_ign ${COMPUTE_NODES}
 	fi	
 else
 	echo "Initial install"

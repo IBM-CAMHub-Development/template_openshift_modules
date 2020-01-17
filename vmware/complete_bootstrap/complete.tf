@@ -23,6 +23,9 @@ resource "null_resource" "complete_bootstrap" {
   
   triggers{
   	number_nodes_changed = "${var.number_nodes}"
+  	vm_ipv4_worker_addresses_changed = "${var.vm_ipv4_worker_addresses}"
+  	#vm_ipv4_controlplane_addresses_changed = "${var.vm_ipv4_controlplane_addresses}" 
+  	
   }  
 
   provisioner "file" {

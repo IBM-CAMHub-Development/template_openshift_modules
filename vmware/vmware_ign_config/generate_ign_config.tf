@@ -115,7 +115,7 @@ resource "null_resource" "generate_ign_config" {
   }
   
   triggers {
-  	control_node_changed = "${var.controlnodes}"
+  	#control_node_changed = "${var.controlnodes}"
   	compute_node_changed = "${var.computenodes}"
   }
   

@@ -8,6 +8,7 @@ for A_NODE_IP in "${NODEIPARR[@]}"; do
         fi
 done
 echo "IPs to process ${nodeiparray[*]}"
+CHANGED=false
 NUM_IPS=${#nodeiparray[@]}
 OUT=
 for ((i=0; i < ${NUM_IPS}; i++)); do
@@ -17,9 +18,15 @@ for ((i=0; i < ${NUM_IPS}; i++)); do
 	else
 		MAC_ADDRESS=$(sudo ssh -o StrictHostKeyChecking=no -q -i ~/.ssh/id_rsa_ocp core@${nodeiparray[i]} ip addr | grep -B1 ${nodeiparray[i]} | head -1 | awk '{print $2'})
 		sudo echo dhcp-host=${MAC_ADDRESS},${nodeiparray[i]} >> /etc/dnsmasq.conf
+		CHANGED=true
 	fi
 done
-sudo systemctl restart dnsmasq
+if [[ "$CHANGED" == "true" ]]; then
+	now=$(date)
+    echo "${now} Starting dnsmasq..."	
+	sudo systemctl restart dnsmasq
+	echo "${now} Started dnsmasq..."
+fi
 echo "Create install complete flag" 
 touch /installer/.install_complete
  

@@ -16,8 +16,9 @@ we may end up retrieving the OCP internal 10.x or 172.x IPs instead of DHCP assi
 | vm_os_password | Password for the Operating System User to access virtual machine | string | - | yes |
 | vm_os_private_key | Private key for Operating System User to access virtual machine | string | `` | no |
 | vm_os_user | User for the Operating System User to access virtual machine | string | - | yes |
-| compute_ip_addresses | Comma separated guest_ip_addresses for OCP Compute nodes | string | - | yes |
-| control_ip_addresses | Comma separated guest_ip_addresses for OCP Control nodes | string | - | yes |
+| compute_nodes | Number of compute nodes | string | 2 | yes |
+| control_nodes | Number of control nodes | string | 3 | yes |
+| get_type | Which node IP to get. Valid values are all,compute,control | string | all | yes |
 | dependsOn | Module depends variable to wait on. | string | - | yes |
 
 ## Outputs

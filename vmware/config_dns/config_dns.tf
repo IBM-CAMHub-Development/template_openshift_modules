@@ -95,9 +95,9 @@ resource "null_resource" "add_master_node_dns_record" {
     destination = "/tmp/config_dns.sh"
   }
   
-  triggers {
-  	control_node_changed = "${var.node_ips}"
-  }
+  #triggers {
+  #	control_node_changed = "${var.node_ips}"
+  #}
 
   provisioner "remote-exec" {
     inline = [
